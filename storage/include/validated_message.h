@@ -4,13 +4,14 @@
 
 #ifndef DUNDERDB_VALIDATED_MESSAGE_H
 #define DUNDERDB_VALIDATED_MESSAGE_H
-#include <cstdint>
-#include <unordered_map>
+#include <string>
+#include "schema.h"
 
 
 struct ValidatedMessage {
-    std::unordered_map<std::string, std::string> record;
+    RecordsVector records;
     int64_t timestamp;
+    size_t estimated_size;
 };
 
 #endif //DUNDERDB_VALIDATED_MESSAGE_H

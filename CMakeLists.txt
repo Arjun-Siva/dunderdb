@@ -61,6 +61,8 @@ target_link_libraries(schema PUBLIC
 # storage library
 add_library(storage
         storage/src/validator.cpp
+        storage/src/buffer_map.cpp
+        storage/src/service_buffer.cpp
 )
 
 target_include_directories(storage PUBLIC

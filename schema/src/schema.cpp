@@ -2,6 +2,7 @@
 // Created by Arjun on 17/06/2026.
 //
 #include "schema.h"
+#include <string>
 
 void Schema::add_column(Column column) {
     std::string column_name = column.get_name();
@@ -9,9 +10,9 @@ void Schema::add_column(Column column) {
     this->column_map_.emplace(column_name, column);
 }
 
-std::optional<Record> Schema::parse_json(std::string_view json) const {
+std::optional<RecordsVector> Schema::parse_json(std::string_view json) const {
     rapidjson::Document doc;
-    Record output_map;
+    RecordsVector output;
 
     if (doc.Parse(json.data()).HasParseError()) {
         return std::nullopt;
@@ -32,6 +33,7 @@ std::optional<Record> Schema::parse_json(std::string_view json) const {
             if (!nullable) {
                 return std::nullopt;
             }
+            output.emplace_back(std::nullopt);
             continue;
         }
 
@@ -43,12 +45,15 @@ std::optional<Record> Schema::parse_json(std::string_view json) const {
             if (!column_value.IsNumber()) {
                 return std::nullopt;
             }
+            // NOTICE: currently converting all numeric types to Double
 
-            if (column_value.IsInt64()) {
-                output_map.emplace(column_name, std::to_string(column_value.GetInt64()));
-            } else {
-                output_map.emplace(column_name, std::to_string(column_value.GetDouble()));
-            }
+            // if (column_value.IsInt64()) {
+            //     output.emplace_back(column_value.GetInt64());
+            //     //output_map.emplace(column_name, std::to_string(column_value.GetInt64()));
+            // } else {
+                output.emplace_back(column_value.GetDouble());
+                //output_map.emplace(column_name, std::to_string(column_value.GetDouble()));
+            // }
         }
 
         else {
@@ -56,11 +61,14 @@ std::optional<Record> Schema::parse_json(std::string_view json) const {
                 return std::nullopt;
             }
 
-            output_map.emplace(column_name, column_value.GetString());
+            const int max_chars = col.get_max_characters();
+            const std::string string_val = column_value.GetString();
+
+            output.emplace_back(string_val.substr(0, max_chars));
         }
     }
 
-    return output_map;
+    return output;
 }
 
 std::string Schema::get_service_name() const {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common_queue.h"
-#include "unvalidated_message.h"
+#include "../../storage/include/unvalidated_message.h"
  
 class NetworkReceiver {
     public:

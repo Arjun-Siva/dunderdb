@@ -9,18 +9,22 @@
 #include <string>
 #include <unordered_map>
 #include <optional>
+#include <variant>
 #include <rapidjson/document.h>
 
 #include "column.h"
 
-using Record = std::unordered_map<std::string, std::string>;
+using Value = std::variant<double, std::string>;
+using OptionalValue = std::optional<Value>;
+
+using RecordsVector = std::vector<OptionalValue>;
 
 class Schema {
 public:
     Schema() = default;
     explicit Schema(const std::string& service_name): service_name_{service_name} {}
     void add_column(Column column);
-    std::optional<Record> parse_json(std::string_view json) const;
+    std::optional<RecordsVector> parse_json(std::string_view json) const;
     std::string get_service_name() const;
 private:
     std::string service_name_;

@@ -2,7 +2,6 @@
 #include <condition_variable>
 #include <queue>
 #include <mutex>
-#include <iostream>
 
 template <typename T>
 class CommonQueue {
@@ -30,9 +29,16 @@ class CommonQueue {
         return item;
     }
 
-    bool isEmpty() {
+    // implement an in-place emplace()?
+
+    bool isEmpty() const {
         std::scoped_lock<std::mutex> lock(mutex_);
         return queue_.empty();
+    }
+
+    bool size() const {
+        std::scoped_lock<std::mutex> lock(mutex_);
+        return queue_.size();
     }
 
     private:

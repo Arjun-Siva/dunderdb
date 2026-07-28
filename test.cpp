@@ -8,6 +8,9 @@
 
 int main() {
     std::cout << "Starting __DunderDB__" << std::endl;
+
+    size_t max_size =  (size_t)-1;
+    std::cout<<max_size<<std::endl;
 }
 
 // {
