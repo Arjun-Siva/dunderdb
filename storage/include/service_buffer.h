@@ -24,6 +24,7 @@ public:
     std::string get_current_segment_name() const;
     size_t get_current_batch_size_bytes() const;
     size_t get_current_segment_size_bytes() const;
+    // TODO: Force flush all contents to disk
 
 private:
     std::string service_name_;
