@@ -19,7 +19,7 @@ enum JobType {
 struct FlushJob {
     JobType type;
     std::string service_name;
-    std::vector <ValidatedMessage> validate_messages;
+    std::vector <ValidatedMessage> validated_messages;
     std::string file_name;
 };
 

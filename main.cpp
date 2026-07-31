@@ -7,6 +7,7 @@
 #include "validator.h"
 #include "service_buffer.h"
 #include "buffer_map.h"
+#include "disk_writer.h"
 
 int main() {
     std::cout << "Starting __DunderDB__" << std::endl;
@@ -48,6 +49,13 @@ int main() {
 
     validator.start();
     std::cout << "Validator started" << std::endl;
+
+    std::string services_directory = "/home/arjunsiva/dunderdb/data";
+
+    DiskWriter disk_writer{disk_queue, services_directory};
+    disk_writer.start();
+
+    std::cout << "Disk Writer started" << std::endl;
 
     while (true) {}
 

@@ -81,6 +81,27 @@ public:
 
         return buffer;
     }
+
+    static std::vector<std::byte> generate_segment_header(const std::string& filename) {
+        std::vector<std::byte> buffer;
+
+        // Reserve space for header size
+        append_to_buffer(buffer, uint32_t{0});
+
+        // Header contents
+        append_string_to_buffer(buffer, filename);
+
+        // Patch header size (excluding the size field itself)
+        const uint32_t header_size = static_cast<uint32_t>(buffer.size() - sizeof(uint32_t));
+
+        std::memcpy(
+            buffer.data(),
+            &header_size,
+            sizeof(header_size)
+        );
+
+        return buffer;
+    }
 };
 
 #endif //DUNDERDB_SERIALIZER_H

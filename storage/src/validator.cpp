@@ -30,7 +30,7 @@ void print_flush_job(const FlushJob& job)
     std::cout << "\n";
     std::cout << "  service_name: " << job.service_name << "\n";
     std::cout << "  file_name: " << job.file_name << "\n";
-    std::cout << "  message_count: " << job.validate_messages.size() << "\n";
+    std::cout << "  message_count: " << job.validated_messages.size() << "\n";
     std::cout << "}\n";
 }
 
@@ -76,7 +76,7 @@ void Validator::run() {
             std::optional<FlushJob> flush_job = serv_buffer.push_and_get_flush_job(message);
 
             if (flush_job.has_value()) {
-                print_flush_job(flush_job.value());
+                // print_flush_job(flush_job.value());
                 this->disk_queue_.enqueue(std::move(flush_job.value()));
             }
 

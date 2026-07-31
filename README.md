@@ -1,20 +1,23 @@
 # dunderdb
-Log ingestion database.
-<br>
 
+Log ingestion database.
 
 ### Development Roadmap
-MVP \
+
 [x] ZMQ thread receives incoming messages and push to queue \
 [x] Parse JSON messages with RapidJSON, validate schema \
 [x] Push the validated messages to a temporary buffer and on reaching threshold, move to a disk buffer \
-[] Disk Writer dequeues disk buffer, serialize messages, and write to disk \
+[x] Disk Writer dequeues disk buffer, serialize messages, and write to disk \
 [] Index on time range \
 [] Queries API for range based query \
 [] Create, store schemas, indexes on disk and load on start \
+[] Seal .tmp file on start \
 [] Client API with ZMQ for pushing data \
-[] Unit tests
+[] Unit tests \
+[] Schema versioning and evolution
+
 ---
+
 [] Dockerize \
 [] Thread pool for disk writer \
 [] Pagination for retrieval queries \
