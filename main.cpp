@@ -50,9 +50,15 @@ int main() {
     validator.start();
     std::cout << "Validator started" << std::endl;
 
-    std::string services_directory = "/home/arjunsiva/dunderdb/data";
+    std::string services_directory = "/home/arjunsiva/dunderdb/data/services";
+    std::string indexes_directory = "/home/arjunsiva/dunderdb/data/indexes";
 
-    DiskWriter disk_writer{disk_queue, services_directory};
+    // auto sales_index = ServiceIndex{"sales", indexes_directory};
+    IndexMap index_map;
+    index_map.add_index(service_name, std::make_unique<ServiceIndex>(service_name, indexes_directory));
+    std::cout << "Index map started" << std::endl;
+
+    DiskWriter disk_writer{disk_queue, services_directory, index_map};
     disk_writer.start();
 
     std::cout << "Disk Writer started" << std::endl;

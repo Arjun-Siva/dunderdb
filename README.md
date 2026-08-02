@@ -14,14 +14,14 @@ Log ingestion database.
 [] Seal .tmp file on start \
 [] Client API with ZMQ for pushing data \
 [] Unit tests \
-[] Schema versioning and evolution
+[] Delete query
 
 ---
 
 [] Dockerize \
 [] Thread pool for disk writer \
 [] Pagination for retrieval queries \
-[] Delete query \
+[] Schema versioning and evolution \
 [] Chunking smaller segments into larger files \
 [] Queries with filters on values of columns \
 [] Standing window queries \

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "validated_message.h"
+#include "segment_metadata.h"
 
 class Serializer {
 public:

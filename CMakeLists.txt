@@ -58,6 +58,17 @@ target_link_libraries(schema PUBLIC
         util
 )
 
+# indexes library
+add_library(index
+        index/src/service_index.cpp
+        index/src/index_map.cpp
+)
+
+target_include_directories(index PUBLIC
+        index/include
+)
+
+
 # storage library
 add_library(storage
         storage/src/validator.cpp
@@ -72,6 +83,7 @@ target_include_directories(storage PUBLIC
 
 target_link_libraries(storage PUBLIC
         schema
+        index
 )
 
 #executable
@@ -84,6 +96,7 @@ target_link_libraries(dunderdb
         util
         schema
         storage
+        index
 )
 
 add_executable(test test.cpp)

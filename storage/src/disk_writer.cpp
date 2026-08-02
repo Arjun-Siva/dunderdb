@@ -4,6 +4,7 @@
 
 #include "disk_writer.h"
 #include "serializer.h"
+#include "segment_metadata.h"
 
 #include <fstream>
 #include <iostream>
@@ -128,8 +129,7 @@ std::vector<std::byte> serialize_messages_vector(const std::vector<ValidatedMess
     std::vector<std::byte> buffer;
 
     for (const auto& message : messages) {
-        Serializer serializer;
-        auto msg_bytes = serializer.serialize_message(message);
+        auto msg_bytes = Serializer::serialize_message(message);
         buffer.insert(buffer.end(), msg_bytes.begin(), msg_bytes.end());
     }
 
@@ -139,8 +139,11 @@ std::vector<std::byte> serialize_messages_vector(const std::vector<ValidatedMess
 void DiskWriter::run() const {
     // pop a job
     while (true) {
-        Serializer serializer;
         auto [type, service_name, messages, file_name] = this->disk_queue_.dequeue();
+        const auto first_message = messages.front();
+        const auto last_message = messages.back();
+        const uint32_t count = messages.size();
+
         auto messages_binary = serialize_messages_vector(messages);
 
         std::cout<<"Diskwriter writes!!"<<std::endl;
@@ -152,12 +155,13 @@ void DiskWriter::run() const {
                 break;
             }
             case NEW: {
-                std::vector<std::byte> header_bytes = serializer.generate_segment_header(file_name);
+                std::vector<std::byte> header_bytes = Serializer::generate_segment_header(file_name);
                 create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
                                     std::move(messages_binary));
                 break;
             }
             case SEAL: {
+                // append messages to disk, rename file
                 append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
                 rename_segment_file(
                     this->services_directory_,
@@ -165,6 +169,14 @@ void DiskWriter::run() const {
                     std::string("seg_" + service_name + ".tmp"),
                     std::string(file_name + ".ddb")
                 );
+
+                // update indexes
+                SegmentMetadata metadata{
+                    first_message.timestamp, last_message.timestamp, count, std::string(file_name + ".ddb")
+                };
+
+                ServiceIndex& serv_index = this->index_map_.get_index(service_name);
+                serv_index.append_segment_metadata(metadata);
                 break;
             }
         }
