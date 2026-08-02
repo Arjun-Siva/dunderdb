@@ -8,10 +8,10 @@ Log ingestion database.
 [x] Parse JSON messages with RapidJSON, validate schema \
 [x] Push the validated messages to a temporary buffer and on reaching threshold, move to a disk buffer \
 [x] Disk Writer dequeues disk buffer, serialize messages, and write to disk \
-[] Index on time range \
-[] Queries API for range based query \
+[x] Index on time range \
 [] Create, store schemas, indexes on disk and load on start \
 [] Seal .tmp file on start \
+[] Queries API for range based query \
 [] Client API with ZMQ for pushing data \
 [] Unit tests \
 [] Delete query
