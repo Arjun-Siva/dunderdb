@@ -8,7 +8,7 @@
 
 #include "column.h"
 
-Column::Column(const std::string &name, const ColumnType type, const int max_characters, const bool nullable) {
+Column::Column(const std::string &name, const ColumnType type, const uint16_t max_characters, const bool nullable) {
     if (type != ColumnType::STRING) {
         throw std::invalid_argument("Column::Column()");
     }
@@ -81,12 +81,16 @@ bool Column::is_nullable() const {
     return this->nullable_;
 }
 
-int Column::get_max_characters() const {
+uint16_t Column::get_max_characters() const {
     return this->max_characters_;
 }
 
 ColumnType Column::get_column_type() const {
     return this->type_;
+}
+
+bool Column::get_nullable() const {
+    return this->nullable_;
 }
 
 

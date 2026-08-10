@@ -42,11 +42,6 @@ int main() {
 
     std::cout << "Receiver started" << std::endl;
 
-    // while (true) {
-    //     auto msg = insertion_queue.dequeue();  // ideally blocking
-    //     std::cout << msg.service << " " << msg.payload << "\n";
-    // }
-
     validator.start();
     std::cout << "Validator started" << std::endl;
 

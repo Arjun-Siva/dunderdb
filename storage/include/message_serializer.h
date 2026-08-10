@@ -6,11 +6,11 @@
 #define DUNDERDB_SERIALIZER_H
 #include <bitset>
 #include <vector>
+#include <cstring>
 
 #include "validated_message.h"
-#include "segment_metadata.h"
 
-class Serializer {
+class MessageSerializer {
 public:
     template<typename T>
     static void append_to_buffer(std::vector<std::byte>& buffer, const T& value) {

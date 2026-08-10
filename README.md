@@ -24,5 +24,6 @@ Log ingestion database.
 [] Schema versioning and evolution \
 [] Chunking smaller segments into larger files \
 [] Queries with filters on values of columns \
+[] Dead letter queues \
 [] Standing window queries \
 [] Specialized indexes

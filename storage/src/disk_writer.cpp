@@ -3,7 +3,7 @@
 //
 
 #include "disk_writer.h"
-#include "serializer.h"
+#include "message_serializer.h"
 #include "segment_metadata.h"
 
 #include <fstream>
@@ -129,7 +129,7 @@ std::vector<std::byte> serialize_messages_vector(const std::vector<ValidatedMess
     std::vector<std::byte> buffer;
 
     for (const auto& message : messages) {
-        auto msg_bytes = Serializer::serialize_message(message);
+        auto msg_bytes = MessageSerializer::serialize_message(message);
         buffer.insert(buffer.end(), msg_bytes.begin(), msg_bytes.end());
     }
 
@@ -155,7 +155,7 @@ void DiskWriter::run() const {
                 break;
             }
             case NEW: {
-                std::vector<std::byte> header_bytes = Serializer::generate_segment_header(file_name);
+                std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
                 create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
                                     std::move(messages_binary));
                 break;

@@ -3,8 +3,9 @@
 //
 #include "schema.h"
 #include <string>
+#include <rapidjson/document.h>
 
-void Schema::add_column(Column column) {
+void Schema::add_column(const Column& column) {
     std::string column_name = column.get_name();
     this->column_order_.push_back(column_name);
     this->column_map_.emplace(column_name, column);
@@ -73,4 +74,15 @@ std::optional<RecordsVector> Schema::parse_json(std::string_view json) const {
 
 std::string Schema::get_service_name() const {
     return this->service_name_;
+}
+
+std::vector<Column> Schema::get_columns_in_order() const {
+    std::vector<Column> output;
+    output.reserve(this->column_order_.size());
+
+    for (auto& column_name : this->column_order_) {
+        output.push_back(this->column_map_.at(column_name));
+    }
+
+    return output;
 }
