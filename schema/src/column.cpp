@@ -5,6 +5,7 @@
 
 #include <stdexcept>
 #include <cctype>
+#include <sstream>
 
 #include "column.h"
 
@@ -91,6 +92,32 @@ ColumnType Column::get_column_type() const {
 
 bool Column::get_nullable() const {
     return this->nullable_;
+}
+
+std::string Column::to_string() const {
+    std::ostringstream oss;
+    oss << "Column( \"";
+    oss << this->get_name() << "\"; ";
+
+    switch (this->type_) {
+        case ColumnType::STRING:
+            oss << "STRING(" << this->get_max_characters() << ");";
+            break;
+        case ColumnType::NUMBER:
+            oss << "NUMBER;";
+            break;
+        default:
+            oss << "UNKNOWN;";
+            break;
+    }
+
+    if (this->nullable_) {
+        oss << "NULLABLE )";
+    } else {
+        oss << "NOT NULLABLE )";
+    }
+
+    return oss.str();
 }
 
 

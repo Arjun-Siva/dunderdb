@@ -86,6 +86,22 @@ target_link_libraries(storage PUBLIC
         index
 )
 
+# startup library
+add_library(startup
+        startup/src/file_loader.cpp
+        startup/src/index_loader.cpp
+        startup/src/schema_loader.cpp
+)
+
+target_include_directories(startup PUBLIC
+        startup/include
+)
+
+target_link_libraries(startup PUBLIC
+        schema
+        index
+)
+
 #executable
 
 add_executable(dunderdb main.cpp)
@@ -97,6 +113,7 @@ target_link_libraries(dunderdb
         schema
         storage
         index
+        startup
 )
 
 add_executable(test test.cpp)
@@ -107,4 +124,5 @@ target_link_libraries(test
         util
         schema
         storage
+        startup
 )

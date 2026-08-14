@@ -39,6 +39,10 @@ void ServiceIndex::append_metadata_to_disk(SegmentMetadata &new_segment_metadata
     std::cout<<"Index write"<<std::endl;
 }
 
+void ServiceIndex::load_segment_metadata_list(std::vector<SegmentMetadata> &segment_metadata_list) {
+    this->segments_ = std::move(segment_metadata_list);
+}
+
 void ServiceIndex::append_segment_metadata(SegmentMetadata& new_segment_metadata) {
     std::unique_lock<std::shared_mutex> lock(mutex_);
     // append to disk first

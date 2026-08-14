@@ -27,6 +27,8 @@ public:
     std::optional<RecordsVector> parse_json(std::string_view json) const;
     std::string get_service_name() const;
     std::vector<Column> get_columns_in_order() const;
+    std::string to_string() const;
+
 private:
     std::string service_name_;
     std::vector<std::string> column_order_;

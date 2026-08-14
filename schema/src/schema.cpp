@@ -2,6 +2,8 @@
 // Created by Arjun on 17/06/2026.
 //
 #include "schema.h"
+
+#include <sstream>
 #include <string>
 #include <rapidjson/document.h>
 
@@ -85,4 +87,22 @@ std::vector<Column> Schema::get_columns_in_order() const {
     }
 
     return output;
+}
+
+std::string Schema::to_string() const {
+    std::ostringstream oss;
+
+    oss << "Schema {\n";
+    oss << "  service_name: " << service_name_ << "\n";
+    oss << "  columns:\n";
+
+    for (const auto& column_name : column_order_) {
+        const auto& column = column_map_.at(column_name);
+
+        oss << "    " << column.to_string() << "\n";
+    }
+
+    oss << "}";
+
+    return oss.str();
 }

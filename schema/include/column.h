@@ -22,6 +22,7 @@ public:
     [[nodiscard]] uint16_t get_max_characters() const;
     [[nodiscard]] ColumnType get_column_type() const;
     [[nodiscard]] bool get_nullable() const;
+    [[nodiscard]] std::string to_string() const;
 private:
     std::string name_;
     ColumnType type_;

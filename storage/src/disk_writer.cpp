@@ -20,7 +20,7 @@ void append_to_segment_file(const std::filesystem::path& services_directory,
     const std::filesystem::path file_path =
         service_directory / std::string("seg_" + service_name + ".tmp");
 
-    // directory is assumed to be present already
+    // directory is assumed to be present already, bytes APPENDED to existing file
 
     std::ofstream file(
         file_path,
@@ -57,13 +57,13 @@ void create_segment_file(const std::filesystem::path& services_directory,
 
     std::filesystem::create_directories(service_directory);
 
-    // Create/open segment file
+    // Create NEW segment file
     std::filesystem::path file_path =
         service_directory / std::string("seg_" + service_name + ".tmp");
 
     std::ofstream file(
         file_path,
-        std::ios::binary | std::ios::app
+        std::ios::binary | std::ios::trunc
     );
 
     if (!file.is_open()) {

@@ -47,6 +47,7 @@ class SchemaSerializer {
         std::string column_name;
         column_name.resize(column_name_size);
         std::memcpy(column_name.data(), bytes.data() + offset, column_name_size);
+        offset += column_name_size;
 
         uint8_t column_type;
         read(column_type);
@@ -88,10 +89,10 @@ class SchemaSerializer {
         // service name size
         size_t offset = 0;
 
-        uint16_t service_name_size;
+        uint16_t service_name_size; // in bytes or number of chars
         std::string service_name;
 
-        if (offset + sizeof(uint32_t) > bytes_vector.size())
+        if (offset + sizeof(uint16_t) > bytes_vector.size())
             throw std::runtime_error("Corrupted Schema file");
 
         std::memcpy(&service_name_size,

@@ -13,6 +13,13 @@
 
 class IndexSerializer {
     public:
+    static std::vector<std::byte> header_bytes_for_index_file(const std::string& service_name) {
+        // NOTE: not used as of now
+        std::vector<std::byte> buffer;
+        append_string_to_buffer(buffer, service_name);
+        return buffer;
+    }
+
     static std::vector<std::byte> serialize_segment_metadata(const SegmentMetadata& segment_metadata) {
         // | object size | start_time | end_time | count | filename length | filename string |
 
@@ -65,7 +72,29 @@ class IndexSerializer {
     static std::vector<SegmentMetadata> deserialize_bytes_of_index_file(const std::vector<std::byte>& bytes_vector) {
         std::vector<SegmentMetadata> segments;
 
+        // | segment metadata object size | segment metadata | ....
+
         size_t offset = 0;
+
+        // if (offset + sizeof(uint16_t) > bytes_vector.size())
+        //     throw std::runtime_error("Corrupted index file");
+        //
+        // uint16_t service_name_size;
+        // std::string service_name;
+        //
+        // std::memcpy(&service_name_size,
+        //                 bytes_vector.data() + offset,
+        //                 sizeof(service_name_size));
+        //
+        // offset += sizeof(service_name_size);
+        //
+        // if (offset + service_name_size > bytes_vector.size())
+        //     throw std::runtime_error("Corrupted index file");
+        //
+        // service_name.resize(service_name_size);
+        //
+        // std::memcpy(service_name.data(), bytes_vector.data() + offset, service_name_size);
+        // offset += service_name_size;
 
         while (offset < bytes_vector.size()) {
             uint32_t object_size;

@@ -9,8 +9,8 @@ Log ingestion database.
 [x] Push the validated messages to a temporary buffer and on reaching threshold, move to a disk buffer \
 [x] Disk Writer dequeues disk buffer, serialize messages, and write to disk \
 [x] Index on time range \
-[] Create, store schemas, indexes on disk and load on start \
-[] Seal .tmp file on start \
+[x] Create, store schemas, indexes on disk and load on start \
+[] Seal .tmp file on start, function to force flush from buffer \
 [] Queries API for range based query \
 [] Client API with ZMQ for pushing data \
 [] Unit tests \
