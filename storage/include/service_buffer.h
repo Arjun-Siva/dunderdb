@@ -20,6 +20,7 @@ public:
         threshold_segment_size_bytes_ = segment_size_mb * 1024 * 1024;
     };
     std::optional<FlushJob> push_and_get_flush_job(ValidatedMessage& message);
+    std::optional<FlushJob> force_flush_job();
     std::string get_service_name() const;
     std::string get_current_segment_name() const;
     size_t get_current_batch_size_bytes() const;

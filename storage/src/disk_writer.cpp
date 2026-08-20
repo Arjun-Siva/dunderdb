@@ -12,7 +12,7 @@
 
 void append_to_segment_file(const std::filesystem::path& services_directory,
                          const std::string& service_name,
-                         const std::vector<std::byte>& messages_bytes
+                         std::vector<std::byte> messages_bytes
                          ) {
     const std::filesystem::path service_directory =
         services_directory / service_name;
@@ -48,8 +48,8 @@ void append_to_segment_file(const std::filesystem::path& services_directory,
 
 void create_segment_file(const std::filesystem::path& services_directory,
                          const std::string& service_name,
-                         const std::vector<std::byte>& header_bytes,
-                         const std::vector<std::byte>& messages_bytes
+                         std::vector<std::byte> header_bytes,
+                         std::vector<std::byte> messages_bytes
 ) {
     // Create /services/service_name directory if it doesn't exist
     const std::filesystem::path service_directory =
@@ -98,14 +98,9 @@ void rename_segment_file(
     const std::string& old_file_name,
     const std::string& new_file_name)
 {
-    std::filesystem::path service_directory =
-        services_directory / service_name;
-
-    const std::filesystem::path old_path =
-        service_directory / old_file_name;
-
-    const std::filesystem::path new_path =
-        service_directory / new_file_name;
+    const std::filesystem::path service_directory = services_directory / service_name;
+    const std::filesystem::path old_path = service_directory / old_file_name;
+    const std::filesystem::path new_path = service_directory / new_file_name;
 
     try
     {
@@ -146,7 +141,7 @@ void DiskWriter::run() const {
 
         auto messages_binary = serialize_messages_vector(messages);
 
-        std::cout<<"Diskwriter writes!!"<<std::endl;
+        // std::cout<<"Diskwriter writes!!"<<std::endl;
 
         // identify the type of job
         switch (type) {
@@ -155,6 +150,7 @@ void DiskWriter::run() const {
                 break;
             }
             case NEW: {
+                // file_name doesn't have the .ddb in it
                 std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
                 create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
                                     std::move(messages_binary));

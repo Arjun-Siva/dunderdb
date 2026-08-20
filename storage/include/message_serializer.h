@@ -12,25 +12,6 @@
 
 class MessageSerializer {
 public:
-    template<typename T>
-    static void append_to_buffer(std::vector<std::byte>& buffer, const T& value) {
-        // checked during compile time if T is POD
-        static_assert(std::is_trivially_copyable_v<T>);
-        // convert all types to array of bytes
-        const auto* ptr = reinterpret_cast<const std::byte*>(&value);
-        // append the array of bytes to the vector
-        buffer.insert(buffer.end(), ptr, ptr + sizeof(T));
-    }
-
-    static void append_string_to_buffer(std::vector<std::byte>& buffer, const std::string& value)
-    {
-        // uint32_t can represent ~ 4 GB
-        const uint32_t size = static_cast<uint32_t>(value.size());
-        append_to_buffer(buffer, size);
-        const auto* ptr = reinterpret_cast<const std::byte*>(value.data());
-        buffer.insert(buffer.end(), ptr, ptr + size);
-    }
-
     static std::vector<std::byte> serialize_message(const ValidatedMessage& message) {
         std::vector<std::byte> buffer;
 
@@ -70,7 +51,7 @@ public:
                 // as the order of columns is deduced from the null map and schema
                 append_to_buffer(buffer, std::get<double>(value));
             } else {
-                const std::string& str = std::get<std::string>(value);
+                const auto& str = std::get<std::string>(value);
                 append_string_to_buffer(buffer, str);
             }
         }
@@ -89,6 +70,7 @@ public:
         // Reserve space for header size
         append_to_buffer(buffer, uint32_t{0});
 
+        // file_name doesn't have the .ddb in it
         // Header contents
         append_string_to_buffer(buffer, filename);
 
@@ -102,6 +84,26 @@ public:
         );
 
         return buffer;
+    }
+
+private:
+    template<typename T>
+    static void append_to_buffer(std::vector<std::byte>& buffer, const T& value) {
+        // checked during compile time if T is POD
+        static_assert(std::is_trivially_copyable_v<T>);
+        // convert all types to array of bytes
+        const auto* ptr = reinterpret_cast<const std::byte*>(&value);
+        // append the array of bytes to the vector
+        buffer.insert(buffer.end(), ptr, ptr + sizeof(T));
+    }
+
+    static void append_string_to_buffer(std::vector<std::byte>& buffer, const std::string& value)
+    {
+        // uint32_t can represent ~ 4 GB
+        const uint32_t size = static_cast<uint32_t>(value.size());
+        append_to_buffer(buffer, size);
+        const auto* ptr = reinterpret_cast<const std::byte*>(value.data());
+        buffer.insert(buffer.end(), ptr, ptr + size);
     }
 };
 

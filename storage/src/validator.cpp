@@ -59,9 +59,9 @@ void Validator::add_schema(const Schema& schema) {
 
 void Validator::run() {
     // pop a message from queue
-
-    while (true) {
-        auto [service, payload, timestamp_ms] = this->insertion_queue_.dequeue();
+    // when validator receives a nullopt, it is because the queue is closed and no more messages are available
+    while (auto unvalidated_msg = this->insertion_queue_.dequeue()) {
+        auto [service, payload, timestamp_ms] = unvalidated_msg.value();
         Schema& schema_of_service = this->service_schema_map_.at(service);
 
         if (std::optional<RecordsVector> validated_payload = schema_of_service.parse_json(payload); validated_payload.has_value()) {

@@ -12,8 +12,8 @@ void ServiceBuffer::update_buffer(ValidatedMessage& message) {
 
 std::string ServiceBuffer::create_segment_file_name() const {
     const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(
-    std::chrono::system_clock::now().time_since_epoch()
-).count();
+        std::chrono::system_clock::now().time_since_epoch()
+    ).count();
 
     std::string filename = "seg_" + this->service_name_ + "_" + std::to_string(now);
     return filename;
@@ -71,6 +71,19 @@ std::optional<FlushJob> ServiceBuffer::push_and_get_flush_job(ValidatedMessage &
     }
     // else don't return a job
     return std::nullopt;
+}
+
+std::optional<FlushJob> ServiceBuffer::force_flush_job() {
+    if (this->current_segment_size_bytes_ == 0) {
+        if (this->current_batch_size_bytes_ > 0) {
+            // this will create a temp file, which will be sealed on restart
+            // even if the system is not terminated, the buffer can continue normally after force flush
+            return create_flush_job(JobType::NEW);
+        }
+        return std::nullopt;
+    }
+    // dump all the contents into a SEAL job
+    return create_flush_job(JobType::SEAL);
 }
 
 std::string ServiceBuffer::get_service_name() const {

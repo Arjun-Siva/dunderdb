@@ -14,10 +14,12 @@ class NetworkReceiver {
 
     ~NetworkReceiver() = default;
     explicit NetworkReceiver(CommonQueue<UnvalidatedMessage>& queue) : insertion_queue_(queue) {};
-    [[noreturn]] void run() const;
+    void run() const;
     void start();
+    void stop();
     void join();
 private:
     CommonQueue<UnvalidatedMessage>& insertion_queue_;
     std::thread thread_;
+    std::atomic<bool> active_{true};
 };

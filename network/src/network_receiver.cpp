@@ -7,27 +7,60 @@
 #include <zmq.hpp>
 #include <iostream>
 
-[[noreturn]] void NetworkReceiver::run() const {
+void NetworkReceiver::run() const
+{
     zmq::context_t context(1);
 
     zmq::socket_t socket(context, zmq::socket_type::rep);
     socket.bind("tcp://*:5555");
-
     std::cout << "Server listening on port 5555...\n";
 
-    while (true) {
+    while (active_.load()) {
+
+        // Wait for the next complete ZeroMQ multipart-message
+        // NOTE: ZeroMQ delivers only after the complete message is received
+        zmq::pollitem_t item{
+            socket,
+            0,
+            ZMQ_POLLIN,
+            0
+        };
+
+        zmq::poll(
+            &item,
+            1,
+            std::chrono::milliseconds(100)
+        );
+
+        // No message arrived during this poll interval
+        // Go back and check active_.
+        if (!(item.revents & ZMQ_POLLIN)) {
+            continue;
+        }
+
         std::vector<std::string> frames;
 
+        // The complete multipart message is available
         while (true) {
             zmq::message_t msg;
+
+            // get one frame
             socket.recv(msg);
 
             frames.emplace_back(
-                static_cast<char *>(msg.data()),
-                msg.size());
+                static_cast<char*>(msg.data()),
+                msg.size()
+            );
 
-            if (!socket.get(zmq::sockopt::rcvmore))
+            if (!socket.get(zmq::sockopt::rcvmore)) {
                 break;
+            }
+        }
+
+        // Shutdown may have been requested while we were
+        // receiving this message. Discard the entire message.
+        if (!active_.load()) {
+            break;
         }
 
         if (frames.size() < 2) {
@@ -38,22 +71,24 @@
             continue;
         }
 
-        const std::string &request_type = frames[0];
-        const std::string &service_name = frames[1];
+        const std::string& request_type = frames[0];
+        const std::string& service_name = frames[1];
 
-        // push request
         if (request_type == "0") {
-            // push messages to queue
+
             for (size_t i = 2; i < frames.size(); ++i) {
-                this->insertion_queue_.enqueue(UnvalidatedMessage{
-                    .service = service_name,
-                    .payload = std::move(frames[i]),
-                    .timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                        std::chrono::system_clock::now().time_since_epoch()
-                    ).count()
-                });
-            }
-        }
+                insertion_queue_.enqueue(
+                    UnvalidatedMessage{
+                        .service = service_name,
+                        .payload = std::move(frames[i]),
+                        .timestamp_ms =
+                            std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::system_clock::now().time_since_epoch()
+                            ).count()
+                    }
+                );
+            } // end-for
+        } // end-if
 
         socket.send(
             zmq::buffer("0"),
@@ -64,6 +99,10 @@
 
 void NetworkReceiver::start() {
     this->thread_ = std::thread(&NetworkReceiver::run, this);
+}
+
+void NetworkReceiver::stop() {
+    active_.store(false);
 }
 
 void NetworkReceiver::join() {
