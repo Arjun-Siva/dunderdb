@@ -33,7 +33,7 @@ private:
 
     std::thread thread_;
 
-    [[noreturn]] void run() const;
+    void run() const;
 };
 
 #endif //DUNDERDB_DISK_WRITER_H

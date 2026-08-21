@@ -3,6 +3,8 @@
 //
 #include "buffer_map.h"
 
+#include <ranges>
+
 void BufferMap::add_buffer(const std::string& service, std::unique_ptr<ServiceBuffer> buffer) {
     buffers_.emplace(service, std::move(buffer));
 }
@@ -13,4 +15,16 @@ ServiceBuffer& BufferMap::get_buffer(const std::string &service) const {
 
 bool BufferMap::contains(const std::string &service) const {
     return buffers_.contains(service);
+}
+
+std::vector<FlushJob> BufferMap::force_flush_all() {
+    std::vector<FlushJob> jobs;
+
+    for (const auto &buffer: buffers_ | std::views::values) {
+        if (std::optional<FlushJob> flush_job = buffer->force_flush_job()) {
+            jobs.push_back(std::move(flush_job.value()));
+        }
+    }
+
+    return jobs;
 }

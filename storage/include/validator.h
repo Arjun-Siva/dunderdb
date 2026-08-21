@@ -30,9 +30,7 @@ private:
     std::unordered_map<std::string, Schema> service_schema_map_;
     BufferMap& buffer_map_;
     CommonQueue<FlushJob>& disk_queue_;
-
     std::thread thread_;
-
-    [[noreturn]] void run();
+    void run();
 };
 #endif //DUNDERDB_VALIDATOR_H

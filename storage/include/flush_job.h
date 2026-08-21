@@ -13,7 +13,8 @@
 enum JobType {
     NEW,
     APPEND,
-    SEAL
+    SEAL,
+    NEW_SEAL
 };
 
 struct FlushJob {
@@ -21,6 +22,9 @@ struct FlushJob {
     std::string service_name;
     std::vector <ValidatedMessage> validated_messages;
     std::string file_name;
+    int64_t segment_starting_ts;
+    int64_t segment_ending_ts;
+    uint32_t segment_message_count;
 };
 
 #endif //DUNDERDB_FLUSH_JOB_H

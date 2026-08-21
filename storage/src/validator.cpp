@@ -93,5 +93,12 @@ void Validator::start() {
 }
 
 void Validator::join() {
-    if (this->thread_.joinable()) this->thread_.join();
+    if (this->thread_.joinable())
+        this->thread_.join();
+    // by this point, the insertion queue is empty, but the service buffers are not empty
+    // force flush buffer
+    std::vector<FlushJob> flush_jobs = this->buffer_map_.force_flush_all();
+    for (auto& flush_job : flush_jobs) {
+        this->disk_queue_.enqueue(std::move(flush_job));
+    }
 }

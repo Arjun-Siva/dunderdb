@@ -10,8 +10,7 @@ Log ingestion database.
 [x] Disk Writer dequeues disk buffer, serialize messages, and write to disk \
 [x] Index on time range \
 [x] Create, store schemas, indexes on disk and load on start \
-[] Graceful shutdown - wait for validator to finish, force flush from buffer \
-[] Load .tmp file size to service buffers and update file name \
+[x] Graceful shutdown - wait for validator to finish, force flush from buffers \
 [] Queries API for range based query \
 [] Client API with ZMQ for pushing data \
 [] Unit tests \

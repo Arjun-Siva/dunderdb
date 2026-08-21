@@ -15,6 +15,7 @@ public:
     void add_buffer(const std::string &service, std::unique_ptr<ServiceBuffer> buffer);
     ServiceBuffer& get_buffer(const std::string& service) const;
     bool contains(const std::string& service) const;
+    std::vector<FlushJob> force_flush_all();
 
 private:
     std::unordered_map<std::string, std::unique_ptr<ServiceBuffer>> buffers_;

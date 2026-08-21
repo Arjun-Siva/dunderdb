@@ -133,11 +133,9 @@ std::vector<std::byte> serialize_messages_vector(const std::vector<ValidatedMess
 
 void DiskWriter::run() const {
     // pop a job
-    while (true) {
-        auto [type, service_name, messages, file_name] = this->disk_queue_.dequeue();
-        const auto first_message = messages.front();
-        const auto last_message = messages.back();
-        const uint32_t count = messages.size();
+    // when flush_job doesn't have value, the disk job queue is closed, and diskwriter can exit
+    while (auto flush_job = this->disk_queue_.dequeue()) {
+        auto [type, service_name, messages, file_name, starting_ts, ending_ts, count] = flush_job.value();
 
         auto messages_binary = serialize_messages_vector(messages);
 
@@ -168,15 +166,37 @@ void DiskWriter::run() const {
 
                 // update indexes
                 SegmentMetadata metadata{
-                    first_message.timestamp, last_message.timestamp, count, std::string(file_name + ".ddb")
+                    starting_ts, ending_ts, count, std::string(file_name + ".ddb")
                 };
 
                 ServiceIndex& serv_index = this->index_map_.get_index(service_name);
                 serv_index.append_segment_metadata(metadata);
                 break;
             }
-        }
-    }
+            case NEW_SEAL: {
+                std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
+                // first create a tmp file like normal NEW
+                create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
+                                    std::move(messages_binary));
+                // immediately rename
+                rename_segment_file(
+                    this->services_directory_,
+                    service_name,
+                    std::string("seg_" + service_name + ".tmp"),
+                    std::string(file_name + ".ddb")
+                );
+
+                // update indexes
+                SegmentMetadata metadata{
+                    starting_ts, ending_ts, count, std::string(file_name + ".ddb")
+                };
+
+                ServiceIndex& serv_index = this->index_map_.get_index(service_name);
+                serv_index.append_segment_metadata(metadata);
+                break;
+            }
+        } // switch-end
+    } // while-end
 }
 
 void DiskWriter::start() {

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <atomic>
+#include <csignal>
 
 #include "common_queue.h"
 #include "network_receiver.h"
@@ -11,7 +13,19 @@
 #include "index_loader.h"
 #include "schema_loader.h"
 
+std::atomic<bool> shutdown_requested{false};
+
+void handle_signal(int signal)
+{
+    if (signal == SIGTERM || signal == SIGINT) {
+        shutdown_requested.store(true);
+    }
+}
+
 int main() {
+    std::signal(SIGTERM, handle_signal);
+    std::signal(SIGINT, handle_signal);
+
     std::cout << "Starting __DunderDB__" << std::endl;
     CommonQueue<UnvalidatedMessage> insertion_queue;
 
@@ -73,7 +87,32 @@ int main() {
 
     std::cout << "Disk Writer started" << std::endl;
 
-    while (true) {}
+    while (!shutdown_requested.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
+    // shutdown
+    std::cout << "Shutdown requested" << std::endl;
+
+    // 1. Stop accepting new network requests
+    receiver.stop();
+    receiver.join();
+    std::cout << "Network receiver stopped" << std::endl;
+
+    // 2. Close insertion queue between network and validator
+    insertion_queue.close();
+
+    // 3. Validator drains remaining messages and exits
+    validator.join();
+    std::cout << "Validator stopped" << std::endl;
+
+    // 4. Close disk job queue
+    disk_queue.close();
+
+    //5. DiskWriter drains remaining flush jobs, including the forced ones
+    disk_writer.join();
+    std::cout << "Disk Writer stopped" << std::endl;
+
+    std::cout << "Stopped __DunderDB__" << std::endl;
     return 0;
 }
