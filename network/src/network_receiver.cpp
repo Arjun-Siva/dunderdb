@@ -18,7 +18,7 @@ void NetworkReceiver::run() const
     while (active_.load()) {
 
         // Wait for the next complete ZeroMQ multipart-message
-        // NOTE: ZeroMQ delivers only after the complete message is received
+        // NOTE: Assuming ZeroMQ delivers only after the complete message is received, needs verification
         zmq::pollitem_t item{
             socket,
             0,
@@ -74,6 +74,8 @@ void NetworkReceiver::run() const
         const std::string& request_type = frames[0];
         const std::string& service_name = frames[1];
 
+        // request type 0 is exclusively for ingestion
+        // other types must be sent to a different socket
         if (request_type == "0") {
 
             for (size_t i = 2; i < frames.size(); ++i) {

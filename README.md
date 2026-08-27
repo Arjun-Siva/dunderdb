@@ -62,6 +62,8 @@ Log ingestion/Time series database
 [x] Index on time range \
 [x] Create, store schemas, indexes on disk and load on start \
 [x] Graceful shutdown - wait for validator to finish, force flush from buffers \
+[] Separate socket and thread for queries (SELECT, DDL) \
+[] Index lookup for time range, load files, form reply JSON \
 [] Queries API for range based query \
 [] Client API with ZMQ for pushing data \
 [] Unit tests \
