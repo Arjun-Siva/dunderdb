@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "common_queue.h"
-#include "network_receiver.h"
+#include "ingestion_receiver.h"
 #include "schema.h"
 #include "unvalidated_message.h"
 #include "validator.h"

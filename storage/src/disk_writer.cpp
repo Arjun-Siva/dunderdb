@@ -144,25 +144,35 @@ void DiskWriter::run() const {
         // identify the type of job
         switch (type) {
             case APPEND: {
-                append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
+                {
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
+                }
                 break;
             }
             case NEW: {
                 // file_name doesn't have the .ddb in it
-                std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
-                create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
+                {
+                    std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
                                     std::move(messages_binary));
+                }
+
                 break;
             }
             case SEAL: {
                 // append messages to disk, rename file
-                append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
-                rename_segment_file(
-                    this->services_directory_,
-                    service_name,
-                    std::string("seg_" + service_name + ".tmp"),
-                    std::string(file_name + ".ddb")
-                );
+                {
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
+                    rename_segment_file(
+                        this->services_directory_,
+                        service_name,
+                        std::string("seg_" + service_name + ".tmp"),
+                        std::string(file_name + ".ddb")
+                    );
+                }
 
                 // update indexes
                 SegmentMetadata metadata{
@@ -174,17 +184,20 @@ void DiskWriter::run() const {
                 break;
             }
             case NEW_SEAL: {
-                std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
-                // first create a tmp file like normal NEW
-                create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
-                                    std::move(messages_binary));
-                // immediately rename
-                rename_segment_file(
-                    this->services_directory_,
-                    service_name,
-                    std::string("seg_" + service_name + ".tmp"),
-                    std::string(file_name + ".ddb")
-                );
+                {
+                    std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    // first create a tmp file like normal NEW
+                    create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
+                                        std::move(messages_binary));
+                    // immediately rename
+                    rename_segment_file(
+                        this->services_directory_,
+                        service_name,
+                        std::string("seg_" + service_name + ".tmp"),
+                        std::string(file_name + ".ddb")
+                    );
+                }
 
                 // update indexes
                 SegmentMetadata metadata{

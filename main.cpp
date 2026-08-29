@@ -3,7 +3,7 @@
 #include <csignal>
 
 #include "common_queue.h"
-#include "network_receiver.h"
+#include "ingestion_receiver.h"
 #include "schema.h"
 #include "unvalidated_message.h"
 #include "validator.h"
@@ -12,10 +12,11 @@
 #include "disk_writer.h"
 #include "index_loader.h"
 #include "schema_loader.h"
+#include "lock_map.h"
 
 std::atomic<bool> shutdown_requested{false};
 
-void handle_signal(int signal)
+void handle_signal(const int signal)
 {
     if (signal == SIGTERM || signal == SIGINT) {
         shutdown_requested.store(true);
@@ -44,10 +45,13 @@ int main() {
 
     // create buffer map
     BufferMap buffer_map;
+    // Map of locks for .tmp files
+    LockMap tmp_file_lock_map;
     // create unique pointers of service buffers and add em to buffer map
     for (const auto& schema : schemas_from_disk) {
         const auto service_name = schema.get_service_name();
         buffer_map.add_buffer(service_name, std::make_unique<ServiceBuffer>(service_name, 512, 32));
+        tmp_file_lock_map.create(service_name);
     }
 
     std::cout << "Buffer Map loaded" << std::endl;
@@ -63,7 +67,7 @@ int main() {
     }
 
 
-    NetworkReceiver receiver{insertion_queue};
+    IngestionReceiver receiver{insertion_queue};
     // starts network receiver in a new thread
     receiver.start();
 
@@ -82,7 +86,7 @@ int main() {
     IndexMap index_map = IndexLoader::load_indexes(indexes_directory);
     std::cout << "Indexes loaded" << std::endl;
 
-    DiskWriter disk_writer{disk_queue, services_directory, index_map};
+    DiskWriter disk_writer{disk_queue, services_directory, index_map, tmp_file_lock_map};
     disk_writer.start();
 
     std::cout << "Disk Writer started" << std::endl;

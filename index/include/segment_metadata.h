@@ -11,7 +11,7 @@ struct SegmentMetadata {
     int64_t start_ts;
     int64_t end_ts;
     uint32_t count;
-    std::string filename;
+    std::string filename; // contains the full file name seg_servicename_timestamp.ddb
 };
 
 #endif //DUNDERDB_SEGMENT_METADATA_H

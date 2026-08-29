@@ -26,7 +26,7 @@ target_include_directories(util INTERFACE
 )
 # network library
 add_library(network
-        network/src/network_receiver.cpp
+        network/src/ingestion_receiver.cpp
 )
 
 target_include_directories(network PUBLIC
@@ -37,6 +37,7 @@ target_include_directories(network PUBLIC
 target_link_libraries(network PUBLIC
         ${ZMQ_LIBRARIES}
         util
+        storage
 )
 
 target_link_directories(network PUBLIC

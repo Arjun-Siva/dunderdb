@@ -11,6 +11,7 @@
 #include "segment_metadata.h"
 #include "flush_job.h"
 #include "index_map.h"
+#include "lock_map.h"
 
 // pops a flush job from disk queue
 // serialize messages
@@ -20,16 +21,23 @@
 class DiskWriter {
 public:
     DiskWriter() = delete;
+
     explicit DiskWriter(CommonQueue<FlushJob> &disk_queue, const std::string &files_directory,
-                        IndexMap &index_map) : services_directory_(files_directory), disk_queue_(disk_queue),
-                                               index_map_(index_map) {
+                        IndexMap &index_map, LockMap &tmp_file_lock_map) : services_directory_(files_directory),
+                                                                           disk_queue_(disk_queue),
+                                                                           index_map_(index_map),
+                                                                           tmp_file_lock_map_(tmp_file_lock_map) {
     };
+
     void start();
+
     void join();
+
 private:
     std::filesystem::path services_directory_;
-    CommonQueue<FlushJob>& disk_queue_;
-    IndexMap& index_map_;
+    CommonQueue<FlushJob> &disk_queue_;
+    IndexMap &index_map_;
+    LockMap &tmp_file_lock_map_;
 
     std::thread thread_;
 
