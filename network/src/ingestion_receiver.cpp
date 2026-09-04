@@ -13,7 +13,7 @@ void IngestionReceiver::run() const
 
     zmq::socket_t socket(context, zmq::socket_type::rep);
     socket.bind("tcp://*:5555");
-    std::cout << "Server listening on port 5555...\n";
+    std::cout << "Ingestion handler listening on port 5555...\n";
 
     while (active_.load()) {
 

@@ -89,7 +89,6 @@ target_link_libraries(storage PUBLIC
 
 # startup library
 add_library(startup
-        startup/src/file_loader.cpp
         startup/src/index_loader.cpp
         startup/src/schema_loader.cpp
 )
@@ -101,6 +100,23 @@ target_include_directories(startup PUBLIC
 target_link_libraries(startup PUBLIC
         schema
         index
+        util
+)
+
+# query library
+add_library(query
+        query/src/select_handler.cpp
+)
+
+target_include_directories(query PUBLIC
+        query/include
+)
+
+target_link_libraries(query PUBLIC
+        schema
+        index
+        storage
+        rapidjson
 )
 
 #executable
