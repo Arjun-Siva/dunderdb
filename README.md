@@ -62,11 +62,11 @@ Log ingestion/Time series database
 [x] Index on time range \
 [x] Create, store schemas, indexes on disk and load on start \
 [x] Graceful shutdown - wait for validator to finish, force flush from buffers \
-[] Separate socket and thread for queries (SELECT, DELETE v INSERT, DDL) \
+[x] Separate socket and thread for queries (SELECT, DELETE v INSERT, DDL) \
 [] Master Schema map to handle DDL in ingestion handler \
-[] Attach Schema binary to file headers \
+[x] Attach Schema binary to file headers \
 [] Differentiate insert and DDL messages in validator \
-[] Index lookup for time range, load files, form reply JSON \
+[x] Index lookup for time range, load files, form reply JSON \
 [] Client API with ZMQ for pushing data and querying \
 [] Delete query
 

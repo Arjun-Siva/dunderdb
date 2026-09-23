@@ -13,8 +13,9 @@
 #include "column.h"
 #include "schema.h"
 
-class SchemaSerializer {
-    public:
+class SchemaSerializer
+{
+public:
     static std::vector<std::byte> serialize_column(const Column& column) {
         // | column name size | column name | column type | max characters | nullable |
         std::vector<std::byte> buffer;
@@ -63,17 +64,18 @@ class SchemaSerializer {
             Column column(column_name, ColumnType::STRING, max_characters, nullable);
             return column;
         } //else {
-            // number
-            Column column(column_name, ColumnType::NUMBER, nullable);
-            return column;
+        // number
+        Column column(column_name, ColumnType::NUMBER, nullable);
+        return column;
         // }
     }
 
     static std::vector<std::byte> serialize_schema(const Schema& schema) {
-        // | schema name size | schema name | column size | column | column size| ... | column |
+        // | schema name size | schema name | column size | column | column size | ... | column |
         std::vector<std::byte> buffer;
         const std::string schema_name = schema.get_service_name();
         append_string_to_buffer(buffer, schema_name);
+        // in the future, add schema version after schema name
 
         for (const Column& column : schema.get_columns_in_order()) {
             std::vector<std::byte> bytes = serialize_column(column);
@@ -85,7 +87,7 @@ class SchemaSerializer {
         return buffer;
     }
 
-    static Schema deserialize_bytes_to_schema(const std::vector<std::byte>& bytes_vector) {
+    static Schema deserialize_bytes_to_schema(const std::span<const std::byte> bytes_vector) {
         // service name size
         size_t offset = 0;
 
@@ -96,10 +98,10 @@ class SchemaSerializer {
             throw std::runtime_error("Corrupted Schema file");
 
         std::memcpy(&service_name_size,
-                        bytes_vector.data() + offset,
-                        sizeof(service_name_size));
+                    bytes_vector.data() + offset,
+                    sizeof(service_name_size));
 
-        offset += sizeof(service_name_size);
+        offset += sizeof(uint16_t);
 
         // service name string
         if (offset + service_name_size > bytes_vector.size())
@@ -107,6 +109,7 @@ class SchemaSerializer {
 
         service_name.resize(service_name_size);
 
+        // TODO: verify cast to char* is not needed
         std::memcpy(service_name.data(), bytes_vector.data() + offset, service_name_size);
         offset += service_name_size;
 
@@ -120,17 +123,21 @@ class SchemaSerializer {
                 throw std::runtime_error("Corrupted Schema file");
 
             std::memcpy(&column_object_size,
-              bytes_vector.data() + offset,
-                sizeof(column_object_size));
+                        bytes_vector.data() + offset,
+                        sizeof(column_object_size));
 
-            offset += sizeof(column_object_size);
+            offset += sizeof(uint16_t);
 
             if (offset + column_object_size > bytes_vector.size())
                 throw std::runtime_error("Corrupted Schema file");
 
-            auto column_object = deserialize_bytes_to_column(std::span<const std::byte>(
-                bytes_vector.data() + offset,
-                column_object_size));
+            // auto column_object = deserialize_bytes_to_column(std::span<const std::byte>(
+            //     bytes_vector.data() + offset,
+            //     column_object_size));
+
+            auto column_object = deserialize_bytes_to_column(
+                bytes_vector.subspan(offset, column_object_size)
+            );
 
             schema_object.add_column(column_object);
 
@@ -142,7 +149,7 @@ class SchemaSerializer {
 
 private:
     // maybe move this into a separate file in util and share with other serializers
-    template<typename T>
+    template <typename T>
     static void append_to_buffer(std::vector<std::byte>& buffer, const T& value) {
         // checked during compile time if T is POD
         static_assert(std::is_trivially_copyable_v<T>);
@@ -152,8 +159,7 @@ private:
         buffer.insert(buffer.end(), ptr, ptr + sizeof(T));
     }
 
-    static void append_string_to_buffer(std::vector<std::byte>& buffer, const std::string& value)
-    {
+    static void append_string_to_buffer(std::vector<std::byte>& buffer, const std::string& value) {
         // uint16_t can represent ~ 65K
         const uint16_t size = static_cast<uint16_t>(value.size());
         append_to_buffer(buffer, size);

@@ -13,6 +13,8 @@
 #include "index_loader.h"
 #include "schema_loader.h"
 #include "lock_map.h"
+#include "query_receiver.h"
+#include "select_handler.h"
 
 std::atomic<bool> shutdown_requested{false};
 
@@ -50,7 +52,7 @@ int main() {
     // create unique pointers of service buffers and add em to buffer map
     for (const auto& schema : schemas_from_disk) {
         const auto service_name = schema.get_service_name();
-        buffer_map.add_buffer(service_name, std::make_unique<ServiceBuffer>(service_name, 512, 32));
+        buffer_map.add_buffer(service_name, std::make_unique<ServiceBuffer>(schema, 512, 32));
         tmp_file_lock_map.create(service_name);
     }
 
@@ -66,12 +68,11 @@ int main() {
         validator.add_schema(schema);
     }
 
-
-    IngestionReceiver receiver{insertion_queue};
+    IngestionReceiver ingestion_receiver{insertion_queue};
     // starts network receiver in a new thread
-    receiver.start();
+    ingestion_receiver.start();
 
-    std::cout << "Receiver started" << std::endl;
+    std::cout << "Ingestion Receiver started" << std::endl;
 
     validator.start();
     std::cout << "Validator started" << std::endl;
@@ -86,10 +87,21 @@ int main() {
     IndexMap index_map = IndexLoader::load_indexes(indexes_directory);
     std::cout << "Indexes loaded" << std::endl;
 
+    // TEMPORARY
+    // index_map.add_index("sales", std::make_unique<ServiceIndex>("sales", indexes_directory));
+    // index_map.add_index("employee", std::make_unique<ServiceIndex>("employee", indexes_directory));
+    // END
+
     DiskWriter disk_writer{disk_queue, services_directory, index_map, tmp_file_lock_map};
     disk_writer.start();
 
     std::cout << "Disk Writer started" << std::endl;
+
+    SelectHandler select_handler{index_map, tmp_file_lock_map, services_directory};
+    QueryReceiver query_receiver{select_handler};
+    query_receiver.start();
+
+    std::cout << "Query Receiver started" << std::endl;
 
     while (!shutdown_requested.load()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -99,9 +111,9 @@ int main() {
     std::cout << "Shutdown requested" << std::endl;
 
     // 1. Stop accepting new network requests
-    receiver.stop();
-    receiver.join();
-    std::cout << "Network receiver stopped" << std::endl;
+    ingestion_receiver.stop();
+    ingestion_receiver.join();
+    std::cout << "Ingestion receiver stopped" << std::endl;
 
     // 2. Close insertion queue between network and validator
     insertion_queue.close();

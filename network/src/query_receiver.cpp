@@ -7,6 +7,8 @@
 #include <zmq.hpp>
 #include <iostream>
 
+QueryReceiver::QueryReceiver(SelectHandler& select_handler) : select_handler_(select_handler) {}
+
 void QueryReceiver::run() const
 {
     zmq::context_t context(1);
@@ -18,7 +20,6 @@ void QueryReceiver::run() const
     while (active_.load()) {
 
         // Wait for the next complete ZeroMQ multipart-message
-        // NOTE: Assuming ZeroMQ delivers only after the complete message is received, needs verification
         zmq::pollitem_t item{
             socket,
             0,
@@ -78,12 +79,14 @@ void QueryReceiver::run() const
         // request type 1 is exclusively for SELECT query
         // ingestion must be sent to a different socket
         if (request_type == "1") {
-
+            std::string result = this->select_handler_.get_query_result(json_payload);
+            socket.send(zmq::buffer(result), zmq::send_flags::none);
         } // end-if
-
-        socket.send(
-            zmq::buffer("0"),
+        else {
+            socket.send(
+            zmq::buffer("Error: Invalid Request Type"),
             zmq::send_flags::none);
+        }
     }
 }
 

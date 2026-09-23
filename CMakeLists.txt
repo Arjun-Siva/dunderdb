@@ -27,6 +27,7 @@ target_include_directories(util INTERFACE
 # network library
 add_library(network
         network/src/ingestion_receiver.cpp
+        network/src/query_receiver.cpp
 )
 
 target_include_directories(network PUBLIC
@@ -38,6 +39,7 @@ target_link_libraries(network PUBLIC
         ${ZMQ_LIBRARIES}
         util
         storage
+        query
 )
 
 target_link_directories(network PUBLIC
@@ -106,6 +108,7 @@ target_link_libraries(startup PUBLIC
 # query library
 add_library(query
         query/src/select_handler.cpp
+        query/src/segment.cpp
 )
 
 target_include_directories(query PUBLIC
@@ -131,6 +134,7 @@ target_link_libraries(dunderdb
         storage
         index
         startup
+        query
 )
 
 add_executable(test test.cpp)
@@ -141,5 +145,7 @@ target_link_libraries(test
         util
         schema
         storage
+        index
         startup
+        query
 )

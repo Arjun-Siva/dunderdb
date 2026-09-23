@@ -13,6 +13,7 @@ std::vector<Schema> SchemaLoader::load_schemas(const std::filesystem::path &sche
 
     for (const auto&[filename, bytes] : files) {
         // deserialize the binary blobs
+        // std::vector is implicitly convertible to std::span
         Schema schema = SchemaSerializer::deserialize_bytes_to_schema(bytes);
         schemas.push_back(std::move(schema));
     }

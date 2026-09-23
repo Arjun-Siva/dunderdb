@@ -6,6 +6,8 @@
 #define DUNDERDB_QUERY_RECEIVER_H
 #include <thread>
 
+#include "select_handler.h"
+
 class QueryReceiver {
     public:
     QueryReceiver() = delete;
@@ -13,9 +15,8 @@ class QueryReceiver {
     QueryReceiver(QueryReceiver&&) = delete;
     QueryReceiver& operator=(const QueryReceiver&) = delete;
     QueryReceiver& operator=(QueryReceiver&&) = delete;
+    explicit QueryReceiver(SelectHandler& select_handler);
 
-    ~QueryReceiver() = default;
-    explicit QueryReceiver() {};
     void run() const;
     void start();
     void stop();
@@ -23,6 +24,7 @@ class QueryReceiver {
 private:
     std::thread thread_;
     std::atomic<bool> active_{true};
+    SelectHandler& select_handler_;
 };
 
 #endif //DUNDERDB_QUERY_RECEIVER_H

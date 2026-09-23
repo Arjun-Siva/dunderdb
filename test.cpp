@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cassert>
 
 #include "common_queue.h"
 #include "ingestion_receiver.h"
@@ -9,6 +10,9 @@
 #include "buffer_map.h"
 #include "disk_writer.h"
 #include "schema_serializer.h"
+#include "query/include/segment.h"
+#include "select_handler.h"
+#include "time_converter.h"
 
 void write_schema_to_disk(std::string&& name, std::vector<std::byte> schema_bytes, const std::string& schemas_directory) {
     const std::filesystem::path schema_file_path = schemas_directory + "/" + name+ ".sch";
@@ -38,27 +42,29 @@ void write_schema_to_disk(std::string&& name, std::vector<std::byte> schema_byte
 }
 
 int main() {
-    std::cout << "Starting __DunderDB__" << std::endl;
-    CommonQueue<UnvalidatedMessage> insertion_queue;
+    const std::string original = "2026-09-17T10:23:45Z";
 
-    // load schemas
-    Schema sales("sales");
-    sales.add_column(Column("item", ColumnType::STRING, 20, false) );
-    sales.add_column(Column("price", ColumnType::NUMBER, false) );
-    sales.add_column(Column("category", ColumnType::STRING, 10, true));
+    const int64_t epoch_ms =
+        TimeConverter::utc_to_epoch_ms(original);
 
-    // serialize to disk
-    std::vector<std::byte> schema_bytes = SchemaSerializer::serialize_schema(sales);
-    std::string schemas_directory = "/home/arjunsiva/dunderdb/data/schemas";
-    write_schema_to_disk("sales", schema_bytes, schemas_directory);
+    const std::string result =
+        TimeConverter::epoch_ms_to_iso(epoch_ms);
 
-    Schema employee("employee");
-    employee.add_column(Column("name", ColumnType::STRING, 20, false) );
-    employee.add_column(Column("age", ColumnType::NUMBER, true) );
-    employee.add_column(Column("department", ColumnType::STRING, 10, true));
+    std::cout << "Original: " << original << '\n';
+    std::cout << "Epoch:    " << epoch_ms << '\n';
+    std::cout << "Result:   " << result << '\n';
 
-    // serialize to disk
-    schema_bytes = SchemaSerializer::serialize_schema(employee);
-    write_schema_to_disk("employee", schema_bytes, schemas_directory);
+    // assert(result == original);
+
+    std::cout << "Round trip OK\n";
+
+    // 1790164103845
+    // 1790164112568
+
+    // 1790164173913
+    // 1790164173918
+    const int64_t ms = 1790164112568;
+    std::cout<< "Converted ms:" <<TimeConverter::epoch_ms_to_iso(ms);
+
     return 0;
 }

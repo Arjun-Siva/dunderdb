@@ -7,6 +7,7 @@
 #include "index_serializer.h"
 
 #include <iostream>
+#include <algorithm>
 
 void ServiceIndex::append_metadata_to_disk(SegmentMetadata& new_segment_metadata) {
     std::vector<std::byte> serialized_metadata = IndexSerializer::serialize_segment_metadata(new_segment_metadata);
@@ -49,7 +50,7 @@ void ServiceIndex::append_segment_metadata(SegmentMetadata& new_segment_metadata
     append_metadata_to_disk(new_segment_metadata);
 
     // append in memory
-    this->segments_.push_back(new_segment_metadata);
+    this->segments_.push_back(std::move(new_segment_metadata));
 }
 
 size_t find_lower_bound(const std::vector<SegmentMetadata>& segments, const int64_t q_start_ts) {
@@ -104,21 +105,28 @@ std::vector<std::string> ServiceIndex::index_lookup_time_range(const int64_t sta
     // shared lock for simultaneous reads
     std::shared_lock<std::shared_mutex> lock(mutex_);
 
-    const size_t lower_bound = find_lower_bound(this->segments_, start_ts);
+    // 1. Find the FIRST segment that doesn't end before our query starts.
+    // This is our inclusive lower bound.
+    const auto it_start = std::lower_bound(this->segments_.begin(), this->segments_.end(), start_ts,
+        [](const SegmentMetadata& seg, const int64_t q_start) {
+            return seg.end_ts < q_start; // True if segment is entirely in the past
+        });
 
-    if (lower_bound == this->segments_.size()) { // query starts after all stored data
-        return result_file_names;
+    // 2. Find the FIRST segment that starts strictly after our query ends.
+    // This acts as our exclusive upper bound.
+    const auto it_end = std::upper_bound(it_start, this->segments_.end(), end_ts,
+        [](const int64_t q_end, const SegmentMetadata& seg) {
+            return q_end < seg.start_ts; // True if segment is entirely in the future
+        });
+
+    // 3. Iterate through all overlapping segments.
+    // If the query fell perfectly in a gap, it_start will equal it_end,
+    // and this loop simply won't execute. (No underflows!)
+    for (auto it = it_start; it != it_end; ++it) {
+        result_file_names.push_back(it->filename);
     }
 
-    const size_t upper_bound = find_upper_bound(this->segments_, lower_bound, end_ts);
-
-    // if lb > ub, in case where both start and end_ts are within a gap, no files will be added to result
-
-    for (size_t i = lower_bound; i <= upper_bound; ++i) {
-        result_file_names.push_back(this->segments_[i].filename);
-    }
-
-    // add .tmp file if needed
+    // 4. Add .tmp file if needed
     if (this->segments_.empty() || this->segments_.back().end_ts < end_ts) {
         const std::string tmp_file = "seg_" + this->service_name_ + ".tmp";
         result_file_names.push_back(tmp_file);

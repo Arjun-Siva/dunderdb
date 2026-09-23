@@ -11,9 +11,9 @@
 #include <stdexcept>
 
 void append_to_segment_file(const std::filesystem::path& services_directory,
-                         const std::string& service_name,
-                         std::vector<std::byte> messages_bytes
-                         ) {
+                            const std::string& service_name,
+                            std::vector<std::byte> messages_bytes
+) {
     const std::filesystem::path service_directory =
         services_directory / service_name;
 
@@ -83,7 +83,7 @@ void create_segment_file(const std::filesystem::path& services_directory,
         reinterpret_cast<const char*>(messages_bytes.data()),
         static_cast<std::streamsize>(messages_bytes.size())
     );
-    std::cout<<"Created file: "<<file_path.string()<<std::endl;
+    std::cout << "Created file: " << file_path.string() << std::endl;
 
     if (!file.good()) {
         throw std::runtime_error(
@@ -92,23 +92,19 @@ void create_segment_file(const std::filesystem::path& services_directory,
     }
 }
 
-void rename_segment_file(
-    const std::filesystem::path& services_directory,
-    const std::string& service_name,
-    const std::string& old_file_name,
-    const std::string& new_file_name)
-{
+void rename_segment_file(const std::filesystem::path& services_directory,
+                         const std::string& service_name,
+                         const std::string& old_file_name,
+                         const std::string& new_file_name) {
     const std::filesystem::path service_directory = services_directory / service_name;
     const std::filesystem::path old_path = service_directory / old_file_name;
     const std::filesystem::path new_path = service_directory / new_file_name;
 
-    try
-    {
+    try {
         std::filesystem::rename(old_path, new_path);
-        std::cout<<"Renamed file: "<<old_path.string()<<" to "<<new_path.string()<<std::endl;
+        std::cout << "Renamed file: " << old_path.string() << " to " << new_path.string() << std::endl;
     }
-    catch (const std::filesystem::filesystem_error& e)
-    {
+    catch (const std::filesystem::filesystem_error& e) {
         throw std::runtime_error(
             "Failed to rename " +
             old_path.string() +
@@ -125,6 +121,7 @@ std::vector<std::byte> serialize_messages_vector(const std::vector<ValidatedMess
 
     for (const auto& message : messages) {
         auto msg_bytes = MessageSerializer::serialize_message(message);
+        // msg_bytes includes the binary message size as well
         buffer.insert(buffer.end(), msg_bytes.begin(), msg_bytes.end());
     }
 
@@ -135,36 +132,41 @@ void DiskWriter::run() const {
     // pop a job
     // when flush_job doesn't have value, the disk job queue is closed, and diskwriter can exit
     while (auto flush_job = this->disk_queue_.dequeue()) {
-        auto [type, service_name, messages, file_name, starting_ts, ending_ts, count] = flush_job.value();
+        auto [type, service_name, messages, file_name,
+            header_binary,starting_ts, ending_ts, count] = flush_job.value();
 
         auto messages_binary = serialize_messages_vector(messages);
 
-        // std::cout<<"Diskwriter writes!!"<<std::endl;
-
         // identify the type of job
         switch (type) {
-            case APPEND: {
+        case APPEND:
+            {
                 {
-                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.
+                                                                     get_exclusive_lock(service_name);
                     append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
                 }
                 break;
             }
-            case NEW: {
+        case NEW:
+            {
                 // file_name doesn't have the .ddb in it
                 {
-                    std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
-                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name, header_binary);
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.
+                                                                     get_exclusive_lock(service_name);
                     create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
-                                    std::move(messages_binary));
+                                        std::move(messages_binary));
                 }
 
                 break;
             }
-            case SEAL: {
+        case SEAL:
+            {
                 // append messages to disk, rename file
                 {
-                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.
+                                                                     get_exclusive_lock(service_name);
                     append_to_segment_file(this->services_directory_, service_name, std::move(messages_binary));
                     rename_segment_file(
                         this->services_directory_,
@@ -175,6 +177,7 @@ void DiskWriter::run() const {
                 }
 
                 // update indexes
+                // NOTE: metadata is std::moved by the end of append_segment_metadata
                 SegmentMetadata metadata{
                     starting_ts, ending_ts, count, std::string(file_name + ".ddb")
                 };
@@ -183,10 +186,12 @@ void DiskWriter::run() const {
                 serv_index.append_segment_metadata(metadata);
                 break;
             }
-            case NEW_SEAL: {
+        case NEW_SEAL:
+            {
                 {
-                    std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name);
-                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.get_exclusive_lock(service_name);
+                    std::vector<std::byte> header_bytes = MessageSerializer::generate_segment_header(file_name, header_binary);
+                    std::unique_lock<std::shared_mutex> lock = this->tmp_file_lock_map_.
+                                                                     get_exclusive_lock(service_name);
                     // first create a tmp file like normal NEW
                     create_segment_file(this->services_directory_, service_name, std::move(header_bytes),
                                         std::move(messages_binary));
@@ -200,6 +205,7 @@ void DiskWriter::run() const {
                 }
 
                 // update indexes
+                // NOTE: metadata is std::moved by the end of append_segment_metadata
                 SegmentMetadata metadata{
                     starting_ts, ending_ts, count, std::string(file_name + ".ddb")
                 };

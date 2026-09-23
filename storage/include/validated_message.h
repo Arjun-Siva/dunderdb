@@ -4,7 +4,7 @@
 
 #ifndef DUNDERDB_VALIDATED_MESSAGE_H
 #define DUNDERDB_VALIDATED_MESSAGE_H
-#include <string>
+
 #include "schema.h"
 
 

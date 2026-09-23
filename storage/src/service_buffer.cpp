@@ -36,7 +36,8 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
     }
     if (type == JobType::SEAL) {
         auto seal_job = FlushJob{
-            type, this->service_name_, std::move(this->message_buffer_), this->current_segment_name_,
+            type, this->service_name_, std::move(this->message_buffer_),
+            this->current_segment_name_, this->serialized_schema_bytes_,
             this->current_segment_starting_ts_, this->current_segment_ending_ts_, this->current_segment_message_count_
         };
         this->message_buffer_.clear();
@@ -55,7 +56,8 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
     if (type == JobType::NEW_SEAL) {
         // create a new file and seal it immediately
         auto new_seal_job = FlushJob{
-            type, this->service_name_, std::move(this->message_buffer_), this->current_segment_name_,
+            type, this->service_name_, std::move(this->message_buffer_),
+            this->current_segment_name_, this->serialized_schema_bytes_,
             this->current_segment_starting_ts_, this->current_segment_ending_ts_, this->current_segment_message_count_
         };
         this->message_buffer_.clear();
@@ -67,7 +69,8 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
     }
 
     // add the message buffer data
-    auto new_job = FlushJob{type, this->service_name_, std::move(this->message_buffer_), this->current_segment_name_};
+    auto new_job = FlushJob{type, this->service_name_, std::move(this->message_buffer_),
+        this->current_segment_name_,this->serialized_schema_bytes_};
     this->message_buffer_.clear();
     this->current_segment_size_bytes_ += this->current_batch_size_bytes_;
     this->current_batch_size_bytes_ = 0;
@@ -115,6 +118,16 @@ std::optional<FlushJob> ServiceBuffer::force_flush_job() {
     }
     // dump all the contents into a SEAL job
     return create_flush_job(JobType::SEAL);
+}
+
+void ServiceBuffer::update_schema(const Schema &new_schema) {
+    std::string new_schema_name = new_schema.get_service_name();
+
+    if (this->service_name_ != new_schema_name) {
+        throw std::runtime_error("Service name does not match new schema");
+    }
+
+    this->serialized_schema_bytes_ = SchemaSerializer::serialize_schema(new_schema);
 }
 
 std::string ServiceBuffer::get_service_name() const {
