@@ -13,12 +13,14 @@
 class IndexMap {
 public:
     IndexMap() = default;
-    void add_index(const std::string& index_name, std::unique_ptr<ServiceIndex> index);
-    ServiceIndex& get_index(const std::string& index_name) const;
-    bool contains(const std::string& index_name) const;
+    void add_index(const std::string& index_name, std::shared_ptr<ServiceIndex> index);
+    void drop_index(const std::string& index_name);
+    [[nodiscard]] std::shared_ptr<ServiceIndex> get_index(const std::string& index_name) const;
+    [[nodiscard]] bool contains(const std::string& index_name) const;
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<ServiceIndex>> indexes_;
+    mutable std::shared_mutex mutex_;
+    std::unordered_map<std::string, std::shared_ptr<ServiceIndex>> indexes_;
 };
 
 #endif //DUNDERDB_INDEX_MAP_H

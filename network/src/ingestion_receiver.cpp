@@ -81,6 +81,7 @@ void IngestionReceiver::run() const
             for (size_t i = 2; i < frames.size(); ++i) {
                 insertion_queue_.enqueue(
                     UnvalidatedMessage{
+                        .type = INSERT,
                         .service = service_name,
                         .payload = std::move(frames[i]),
                         .timestamp_ms =

@@ -20,8 +20,8 @@ std::string SelectHandler::get_query_result(const std::string& json_payload) con
     const auto query = parse_select_query(json_payload);
     // index look up on ranges
     // TODO: catch missing service names
-    const ServiceIndex& service_index = this->index_map_.get_index(query.service_name);
-    std::vector<std::string> file_names = service_index.index_lookup_time_range(query.start_time, query.end_time);
+    const std::shared_ptr<ServiceIndex> service_index = this->index_map_.get_index(query.service_name);
+    std::vector<std::string> file_names = service_index->index_lookup_time_range(query.start_time, query.end_time);
 
     rapidjson::StringBuffer buffer;
     rapidjson::Writer<rapidjson::StringBuffer> rapid_writer(buffer);

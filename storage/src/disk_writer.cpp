@@ -182,8 +182,8 @@ void DiskWriter::run() const {
                     starting_ts, ending_ts, count, std::string(file_name + ".ddb")
                 };
 
-                ServiceIndex& serv_index = this->index_map_.get_index(service_name);
-                serv_index.append_segment_metadata(metadata);
+                const std::shared_ptr<ServiceIndex> serv_index = this->index_map_.get_index(service_name);
+                serv_index->append_segment_metadata(metadata);
                 break;
             }
         case NEW_SEAL:
@@ -210,10 +210,14 @@ void DiskWriter::run() const {
                     starting_ts, ending_ts, count, std::string(file_name + ".ddb")
                 };
 
-                ServiceIndex& serv_index = this->index_map_.get_index(service_name);
-                serv_index.append_segment_metadata(metadata);
+                std::shared_ptr<ServiceIndex> serv_index = this->index_map_.get_index(service_name);
+                serv_index->append_segment_metadata(metadata);
                 break;
             }
+        case DROP_SERVICE:
+            break;
+        case DELETE:
+            break;
         } // switch-end
     } // while-end
 }

@@ -78,15 +78,12 @@ int main() {
     std::cout << "Validator started" << std::endl;
 
 
-
-    // auto sales_index = ServiceIndex{"sales", indexes_directory};
-    // IndexMap index_map;
-    // index_map.add_index("sales", std::make_unique<ServiceIndex>("sales", indexes_directory));
-
     // load indexes from disk
-    IndexMap index_map = IndexLoader::load_indexes(indexes_directory);
+    IndexMap index_map; // passed as reference and the indexes are loaded into the map
+    IndexLoader::load_indexes(indexes_directory, index_map);
     std::cout << "Indexes loaded" << std::endl;
 
+    // TODO: add empty indexes to index map for services that are present in schema map, but not in index map
     // TEMPORARY
     // index_map.add_index("sales", std::make_unique<ServiceIndex>("sales", indexes_directory));
     // index_map.add_index("employee", std::make_unique<ServiceIndex>("employee", indexes_directory));
@@ -104,7 +101,7 @@ int main() {
     std::cout << "Query Receiver started" << std::endl;
 
     while (!shutdown_requested.load()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     // shutdown

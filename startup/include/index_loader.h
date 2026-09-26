@@ -11,6 +11,6 @@
 
 class IndexLoader {
     public:
-        static IndexMap load_indexes(const std::filesystem::path& index_directory);
+        static void load_indexes(const std::filesystem::path& index_directory, IndexMap& map);
 };
 #endif //DUNDERDB_INDEX_LOADER_H

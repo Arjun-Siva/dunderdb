@@ -66,6 +66,7 @@ Log ingestion/Time series database
 [] Master Schema map to handle DDL in ingestion handler \
 [x] Attach Schema binary to file headers \
 [] Differentiate insert and DDL messages in validator \
+[] Handle schema DDL and changes in validator, index map, and disk writer \
 [x] Index lookup for time range, load files, form reply JSON \
 [] Client API with ZMQ for pushing data and querying \
 [] Delete query
@@ -75,7 +76,8 @@ Log ingestion/Time series database
 [] Dockerize \
 [] Thread pool for disk writer \
 [] Pagination for retrieval queries \
-[] Schema versioning and evolution \
+[] Stats on indexes \
+[] Schema versioning \
 [] Chunking smaller segments into larger files \
 [] Queries with filters on values of columns \
 [] Dead letter queues \

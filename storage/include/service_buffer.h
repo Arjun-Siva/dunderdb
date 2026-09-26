@@ -28,19 +28,18 @@ public:
         threshold_segment_size_bytes_ = segment_size_mb * 1024 * 1024;
     };
 
+    void update_schema_bytes(const Schema& schema);
+
     std::optional<FlushJob> push_and_get_flush_job(ValidatedMessage &message);
 
     std::optional<FlushJob> force_flush_job();
 
     void update_schema(const Schema& new_schema);
 
-    std::string get_service_name() const;
-
-    std::string get_current_segment_name() const;
-
-    size_t get_current_batch_size_bytes() const;
-
-    size_t get_current_segment_size_bytes() const;
+    [[nodiscard]] std::string get_service_name() const;
+    [[nodiscard]] std::string get_current_segment_name() const;
+    [[nodiscard]] size_t get_current_batch_size_bytes() const;
+    [[nodiscard]] size_t get_current_segment_size_bytes() const;
 
 private:
     std::string service_name_;
