@@ -10,7 +10,7 @@ void IndexMap::add_index(const std::string &index_name, std::shared_ptr<ServiceI
     this->indexes_.emplace(index_name, std::move(index)); // only the pointer is moved in, not the object itself
 }
 
-void IndexMap::drop_index(const std::string& index_name) {
+void IndexMap::delete_index(const std::string& index_name) {
     std::unique_lock lock(this->mutex_);
     this->indexes_.erase(index_name); // the actual object is destroyed only when all shared_ptrs are destroyed
 }

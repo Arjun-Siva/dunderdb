@@ -50,6 +50,8 @@ target_link_directories(network PUBLIC
 add_library(schema
         schema/src/column.cpp
         schema/src/schema.cpp
+        schema/src/schema_map.cpp
+        schema/src/schema_generator.cpp
 )
 
 target_include_directories(schema PUBLIC
@@ -109,6 +111,7 @@ target_link_libraries(startup PUBLIC
 add_library(query
         query/src/select_handler.cpp
         query/src/segment.cpp
+        query/src/ddl_handler.cpp
 )
 
 target_include_directories(query PUBLIC

@@ -14,7 +14,7 @@ class IndexMap {
 public:
     IndexMap() = default;
     void add_index(const std::string& index_name, std::shared_ptr<ServiceIndex> index);
-    void drop_index(const std::string& index_name);
+    void delete_index(const std::string& index_name);
     [[nodiscard]] std::shared_ptr<ServiceIndex> get_index(const std::string& index_name) const;
     [[nodiscard]] bool contains(const std::string& index_name) const;
 
