@@ -170,7 +170,7 @@ SchemaGenerator::SchemaGenerator(std::string_view ddl_message) {
             this->set_error_message_and_validity("Column type is not a string");
             return;
         }
-        const std::string col_type = name_val.GetString();
+        const std::string col_type = type_val.GetString();
 
         if (col_type != "string" && col_type != "number") {
             this->set_error_message_and_validity("Column type should be either 'string' or 'number'");
@@ -183,21 +183,26 @@ SchemaGenerator::SchemaGenerator(std::string_view ddl_message) {
             this->set_error_message_and_validity("Column max_characters is missing");
             return;
         }
-        if (col_type == "number") {
-            this->set_error_message_and_validity("Column of type 'number' can't have max_characters");
-            return;
-        }
+        int32_t max_characters = 1;
 
-        const auto& maxchar_val = maxchar_iter->value;
-        if (!maxchar_val.IsInt()) {
-            this->set_error_message_and_validity("Column max_characters is not an integer");
-            return;
-        }
-        const uint16_t max_characters = maxchar_val.GetInt();
+        if (maxchar_iter != column_obj.MemberEnd()) {
+            if (col_type == "number") {
+                this->set_error_message_and_validity("Column of type 'number' can't have max_characters");
+                return;
+            }
 
-        if (max_characters < 1) {
-            this->set_error_message_and_validity("Column max_characters is less than 1");
-            return;
+            const auto& maxchar_val = maxchar_iter->value;
+            if (!maxchar_val.IsInt()) {
+                this->set_error_message_and_validity("Column max_characters is not an integer");
+                return;
+            }
+
+            max_characters = maxchar_val.GetInt();
+
+            if (max_characters < 1) {
+                this->set_error_message_and_validity("Column max_characters is less than 1");
+                return;
+            }
         }
 
         // ----------- nullable --------------

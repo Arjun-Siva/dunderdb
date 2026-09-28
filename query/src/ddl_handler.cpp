@@ -28,14 +28,20 @@ std::string DDLHandler::process_ddl_query(const std::string& json_message) const
         type = UnvalidatedMessageType::SCHEMA_NEW;
         write_schema_to_disk(parsed_schema, service_name);
         this->master_schema_map_.add_schema(service_name, std::make_shared<Schema>(std::move(parsed_schema)));
+        // create new index
+        this->master_index_map_.add_index(service_name,
+            std::make_shared<ServiceIndex>(service_name, this->indexes_directory_));
     } else if (msg_type == "update") {
         type = UnvalidatedMessageType::SCHEMA_UPDATE;
         write_schema_to_disk(parsed_schema, service_name);
         this->master_schema_map_.add_schema(service_name, std::make_shared<Schema>(std::move(parsed_schema)));
+        // no changes in index
     } else {
         type = UnvalidatedMessageType::SCHEMA_DROP;
         delete_schema_from_disk(service_name);
         this->master_schema_map_.delete_schema(service_name);
+
+        // index will be deleted at DiskWriter
     }
 
     // push to the ingestion queue to be picked up by validator

@@ -50,7 +50,7 @@ void IngestionReceiver::run() const
             zmq::message_t msg;
 
             // get one frame
-            socket.recv(msg);
+            auto recv_res_ = socket.recv(msg);
 
             frames.emplace_back(
                 static_cast<char*>(msg.data()),

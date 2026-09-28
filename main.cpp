@@ -66,38 +66,36 @@ int main() {
     // load validator with schemas and validate them. validator has a map service -> schema
     Validator validator{insertion_queue, buffer_map, disk_queue};
 
+    // load indexes from disk
+    IndexMap master_index_map; // passed as reference and the indexes are loaded into the map
+    IndexLoader::load_indexes(indexes_directory, master_index_map);
+
     for (const auto& schema : schemas_from_disk) {
         validator.add_schema(schema);
-    }
 
-    DDLHandler ddl_handler{master_schema_map, insertion_queue, schemas_directory};
+        // add empty indexes to index map for services that are present in schema map, but not in index map
+        if (const std::string service_name = schema.get_service_name(); !master_index_map.contains(service_name)) {
+            master_index_map.add_index(service_name, std::make_shared<ServiceIndex>(service_name, indexes_directory));
+        }
+    }
+    std::cout << "Indexes loaded" << std::endl;
+
+    validator.start();
+    std::cout << "Validator started" << std::endl;
+
+    DDLHandler ddl_handler{master_schema_map, master_index_map, insertion_queue, schemas_directory, indexes_directory};
     IngestionReceiver ingestion_receiver{insertion_queue, ddl_handler};
     // starts network receiver in a new thread
     ingestion_receiver.start();
 
     std::cout << "Ingestion Receiver started" << std::endl;
 
-    validator.start();
-    std::cout << "Validator started" << std::endl;
-
-
-    // load indexes from disk
-    IndexMap index_map; // passed as reference and the indexes are loaded into the map
-    IndexLoader::load_indexes(indexes_directory, index_map);
-    std::cout << "Indexes loaded" << std::endl;
-
-    // TODO: add empty indexes to index map for services that are present in schema map, but not in index map
-    // TEMPORARY
-    // index_map.add_index("sales", std::make_unique<ServiceIndex>("sales", indexes_directory));
-    // index_map.add_index("employee", std::make_unique<ServiceIndex>("employee", indexes_directory));
-    // END
-
-    DiskWriter disk_writer{disk_queue, services_directory, index_map, tmp_file_lock_map};
+    DiskWriter disk_writer{disk_queue, services_directory, master_index_map, tmp_file_lock_map};
     disk_writer.start();
 
     std::cout << "Disk Writer started" << std::endl;
 
-    SelectHandler select_handler{index_map, tmp_file_lock_map, services_directory};
+    SelectHandler select_handler{master_index_map, tmp_file_lock_map, services_directory};
     QueryReceiver query_receiver{select_handler};
     query_receiver.start();
 

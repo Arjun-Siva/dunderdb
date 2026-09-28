@@ -134,3 +134,9 @@ std::vector<std::string> ServiceIndex::index_lookup_time_range(const int64_t sta
 
     return result_file_names;
 }
+
+void ServiceIndex::erase_index_file_from_disk() const {
+    // self annihilation ooo
+    const std::filesystem::path index_file_path = this->index_file_directory_ / std::string(this->service_name_ + ".idx");
+    std::filesystem::remove(index_file_path);
+}

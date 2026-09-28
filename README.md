@@ -54,7 +54,7 @@ Log ingestion/Time series database
              └─────────────┘               
 
 ### Development Roadmap
-
+#### MVP
 [x] ZMQ thread receives incoming messages and push to queue \
 [x] Parse JSON messages with RapidJSON, validate schema \
 [x] Push the validated messages to a temporary buffer and on reaching threshold, move to a disk buffer \
@@ -63,9 +63,9 @@ Log ingestion/Time series database
 [x] Create, store schemas, indexes on disk and load on start \
 [x] Graceful shutdown - wait for validator to finish, force flush from buffers \
 [x] Separate socket and thread for queries (SELECT, DELETE v INSERT, DDL) \
-[] Master Schema map to handle DDL in ingestion handler \
+[x] Master Schema map to handle DDL in ingestion handler \
 [x] Attach Schema binary to file headers \
-[] Differentiate insert and DDL messages in validator \
+[x] Differentiate insert and DDL messages in validator \
 [] Handle schema DDL and changes in validator, index map, and disk writer \
 [x] Index lookup for time range, load files, form reply JSON \
 [] Client API with ZMQ for pushing data and querying \

@@ -215,7 +215,17 @@ void DiskWriter::run() const {
                 break;
             }
         case DROP_SERVICE:
-            break;
+            {
+                // erase the complete service directory
+                std::filesystem::path service_dir = this->services_directory_ / service_name;
+                std::filesystem::remove_all(service_dir);
+
+                // erase the index
+                auto service_index = this->index_map_.get_index(service_name);
+                service_index->erase_index_file_from_disk();
+                this->index_map_.delete_index(service_name);
+                break;
+            }
         case REMOVE:
             break;
         } // switch-end
