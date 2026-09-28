@@ -86,7 +86,7 @@ SchemaGenerator::SchemaGenerator(std::string_view ddl_message) {
     }
 
     const std::string change_type = type.GetString();
-    if (change_type != "new" || change_type == "update" || change_type == "drop") {
+    if (change_type != "new" && change_type != "update" && change_type != "drop") {
         this->set_error_message_and_validity("change_type can be only of types - new, update, and drop");
         return;
     }
@@ -111,16 +111,7 @@ SchemaGenerator::SchemaGenerator(std::string_view ddl_message) {
     }
 
     this->service_name_ = service_name;
-
-    if (change_type == "new") {
-        this->unvalidated_message_type_ = SCHEMA_NEW;
-    }
-    else if (change_type == "update") {
-        this->unvalidated_message_type_ = SCHEMA_UPDATE;
-    }
-    else {
-        this->unvalidated_message_type_ = SCHEMA_DROP;
-    }
+    this->ddl_type_ = change_type;
 
     // -------------- columns -------------------
     const auto columns_iter = doc.FindMember("columns");
@@ -239,13 +230,13 @@ std::optional<std::string> SchemaGenerator::get_ddl_error_message(const SchemaMa
         return this->error_message_;
     }
 
-    if (this->unvalidated_message_type_ == SCHEMA_NEW && schema_map.contains(this->service_name_)) {
+    if (this->ddl_type_ == "new" && schema_map.contains(this->service_name_)) {
         this->set_error_message_and_validity("Service already exists");
         return this->error_message_;
     }
 
-    if ((this->unvalidated_message_type_ == SCHEMA_UPDATE || this->unvalidated_message_type_ == SCHEMA_DROP) && !
-        schema_map.contains(this->service_name_)) {
+    if ((this->ddl_type_ == "drop" || this->ddl_type_ == "update") &&
+        !schema_map.contains(this->service_name_)) {
         this->set_error_message_and_validity("Service doesn't exists");
         return this->error_message_;
     }
@@ -253,8 +244,12 @@ std::optional<std::string> SchemaGenerator::get_ddl_error_message(const SchemaMa
     return std::nullopt;
 }
 
-UnvalidatedMessageType SchemaGenerator::get_unvalidated_message_type() const {
-    return this->unvalidated_message_type_;
+std::string SchemaGenerator::get_ddl_message_type() const {
+    return this->ddl_type_;
+}
+
+std::string SchemaGenerator::get_service_name() const {
+    return this->service_name_;
 }
 
 Schema SchemaGenerator::get_parsed_schema_object() const {

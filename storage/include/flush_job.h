@@ -16,7 +16,7 @@ enum JobType {
     SEAL,
     NEW_SEAL,
     DROP_SERVICE,
-    DELETE
+    REMOVE
 };
 
 struct FlushJob {

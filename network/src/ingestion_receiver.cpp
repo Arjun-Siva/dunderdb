@@ -2,10 +2,13 @@
 // Created by Arjun on 12/06/2026.
 //
 
-#include "ingestion_receiver.h"
 #include <chrono>
 #include <zmq.hpp>
 #include <iostream>
+
+#include "ingestion_receiver.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 
 void IngestionReceiver::run() const
 {
@@ -14,6 +17,8 @@ void IngestionReceiver::run() const
     zmq::socket_t socket(context, zmq::socket_type::rep);
     socket.bind("tcp://*:5555");
     std::cout << "Ingestion handler listening on port 5555...\n";
+    std::string success_resp = form_response("ok", "Messages received");
+    std::string wrong_req_type_resp = form_response("error", "Unknown request type");
 
     while (active_.load()) {
 
@@ -91,11 +96,31 @@ void IngestionReceiver::run() const
                     }
                 );
             } // end-for
+            socket.send(
+            zmq::buffer(success_resp),
+            zmq::send_flags::none);
         } // end-if
 
-        socket.send(
-            zmq::buffer("0"),
+        else if (request_type == "2") {
+            // DDL queries
+            std::string ddl_resp;
+            if (frames.size() != 3) {
+                ddl_resp = form_response("error", "DDL requests should contain 3 frames");
+            } else {
+                std::string json_payload = std::move(frames[2]);
+                ddl_resp = this->ddl_handler_.process_ddl_query(json_payload);
+            }
+            socket.send(
+            zmq::buffer(ddl_resp),
             zmq::send_flags::none);
+        }
+
+        else {
+            socket.send(
+            zmq::buffer(wrong_req_type_resp),
+            zmq::send_flags::none);
+        }
+
     }
 }
 
@@ -110,4 +135,20 @@ void IngestionReceiver::stop() {
 
 void IngestionReceiver::join() {
     if (this->thread_.joinable()) this->thread_.join();
+}
+
+
+std::string IngestionReceiver::form_response(const std::string& status, const std::string& msg) {
+    // duplicate from ddl handler
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> rapid_writer(buffer);
+    rapid_writer.StartObject();
+    rapid_writer.Key("status");
+    rapid_writer.String(status.c_str());
+
+    rapid_writer.Key("message");
+    rapid_writer.String(msg.c_str());
+
+    rapid_writer.EndObject();
+    return buffer.GetString();
 }

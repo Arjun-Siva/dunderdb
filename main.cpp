@@ -31,6 +31,7 @@ int main() {
 
     std::cout << "Starting __DunderDB__" << std::endl;
     CommonQueue<UnvalidatedMessage> insertion_queue;
+    SchemaMap master_schema_map;
 
     // load schemas
     std::string services_directory = "/home/arjunsiva/dunderdb/data/services";
@@ -40,19 +41,20 @@ int main() {
     std::vector<Schema> schemas_from_disk = SchemaLoader::load_schemas(std::filesystem::path{schemas_directory});
 
     for (const auto& schema : schemas_from_disk) {
+        master_schema_map.add_schema(schema.get_service_name(), std::make_shared<Schema>(schema));
         std::cout<< schema.to_string()<< std::endl;
     }
 
     std::cout << "Schemas loaded" << std::endl;
 
     // create buffer map
-    BufferMap buffer_map;
+    BufferMap buffer_map{512, 32};
     // Map of locks for .tmp files
     LockMap tmp_file_lock_map;
     // create unique pointers of service buffers and add em to buffer map
     for (const auto& schema : schemas_from_disk) {
         const auto service_name = schema.get_service_name();
-        buffer_map.add_buffer(service_name, std::make_unique<ServiceBuffer>(schema, 512, 32));
+        buffer_map.add_buffer(schema);
         tmp_file_lock_map.create(service_name);
     }
 
@@ -68,7 +70,8 @@ int main() {
         validator.add_schema(schema);
     }
 
-    IngestionReceiver ingestion_receiver{insertion_queue};
+    DDLHandler ddl_handler{master_schema_map, insertion_queue, schemas_directory};
+    IngestionReceiver ingestion_receiver{insertion_queue, ddl_handler};
     // starts network receiver in a new thread
     ingestion_receiver.start();
 

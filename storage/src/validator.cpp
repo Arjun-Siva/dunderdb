@@ -4,6 +4,8 @@
 
 #include <iostream>
 #include "validator.h"
+
+#include "schema_generator.h"
 #include "validated_message.h"
 
 void print_flush_job(const FlushJob& job)
@@ -54,37 +56,78 @@ size_t estimate_size(const RecordsVector& records) {
 
 void Validator::add_schema(const Schema& schema) {
     const auto service= schema.get_service_name();
-    this->service_schema_map_.emplace(service, schema);
+    this->service_schema_map_.insert_or_assign(service, schema);
+}
+
+void Validator::erase_schema(const std::string& schema_name) {
+    this->service_schema_map_.erase(schema_name);
 }
 
 void Validator::run() {
     // pop a message from queue
     // when validator receives a nullopt, it is because the queue is closed and no more messages are available
     while (auto unvalidated_msg = this->insertion_queue_.dequeue()) {
-        auto [service, payload, timestamp_ms] = unvalidated_msg.value();
-        Schema& schema_of_service = this->service_schema_map_.at(service);
+        auto [type, service, payload, timestamp_ms] = unvalidated_msg.value();
 
-        if (std::optional<RecordsVector> validated_payload = schema_of_service.parse_json(payload); validated_payload.has_value()) {
-            RecordsVector records = std::move(validated_payload).value();
-            const size_t estimated_size = estimate_size(records);
+        if (type == UnvalidatedMessageType::INSERT) {
+            Schema& schema_of_service = this->service_schema_map_.at(service);
 
-            ValidatedMessage message{std::move(records), timestamp_ms, estimated_size};
+            if (std::optional<RecordsVector> validated_payload = schema_of_service.parse_json(payload); validated_payload.has_value()) {
+                RecordsVector records = std::move(validated_payload).value();
+                const size_t estimated_size = estimate_size(records);
 
-            // get buffer map
+                ValidatedMessage message{std::move(records), timestamp_ms, estimated_size};
+
+                // get buffer map
+                ServiceBuffer& serv_buffer = this->buffer_map_.get_buffer(service);
+                //if service buffer returns a FlushJob object, push it to disk queue
+                std::optional<FlushJob> flush_job = serv_buffer.push_and_get_flush_job(message);
+
+                if (flush_job.has_value()) {
+                    // print_flush_job(flush_job.value());
+                    this->disk_queue_.enqueue(std::move(flush_job.value()));
+                }
+
+            }
+            else {
+                // dropped
+                // may be a dead letter queue in future
+            }
+        }
+
+        else if (type == UnvalidatedMessageType::SCHEMA_NEW) {
+            // add the schema to validator's schema map, and create a new service buffer for the new service
+            SchemaGenerator schema_gen{payload};
+            Schema schema = schema_gen.get_parsed_schema_object();
+
+            this->add_schema(schema);
+            this->buffer_map_.add_buffer(schema);
+        }
+
+        else if (type == UnvalidatedMessageType::SCHEMA_UPDATE) {
+            SchemaGenerator schema_gen{payload};
+            Schema schema = schema_gen.get_parsed_schema_object();
+
+            // force flush existing schema
             ServiceBuffer& serv_buffer = this->buffer_map_.get_buffer(service);
-            //if service buffer returns a FlushJob object, push it to disk queue
-            std::optional<FlushJob> flush_job = serv_buffer.push_and_get_flush_job(message);
-
+            std::optional<FlushJob> flush_job = serv_buffer.force_flush_job();
             if (flush_job.has_value()) {
-                // print_flush_job(flush_job.value());
                 this->disk_queue_.enqueue(std::move(flush_job.value()));
             }
 
+            // add_schema & add_buffer simply replaces the new ServiceBuffer for the existing service name key
+            this->add_schema(schema);
+            this->buffer_map_.add_buffer(schema);
         }
-        else {
-            // dropped
-            // may be a dead letter queue in future
+
+        else if (type == UnvalidatedMessageType::SCHEMA_DROP) {
+            this->erase_schema(service);
+            this->buffer_map_.erase_buffer(service);
+
+            FlushJob drop_service_job{JobType::DROP_SERVICE, service};
+            this->disk_queue_.enqueue(std::move(drop_service_job));
         }
+
     }
 }
 

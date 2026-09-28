@@ -120,15 +120,15 @@ std::optional<FlushJob> ServiceBuffer::force_flush_job() {
     return create_flush_job(JobType::SEAL);
 }
 
-void ServiceBuffer::update_schema(const Schema &new_schema) {
-    std::string new_schema_name = new_schema.get_service_name();
-
-    if (this->service_name_ != new_schema_name) {
-        throw std::runtime_error("Service name does not match new schema");
-    }
-
-    this->serialized_schema_bytes_ = SchemaSerializer::serialize_schema(new_schema);
-}
+// void ServiceBuffer::update_schema(const Schema &new_schema) {
+//     std::string new_schema_name = new_schema.get_service_name();
+//
+//     if (this->service_name_ != new_schema_name) {
+//         throw std::runtime_error("Service name does not match new schema");
+//     }
+//
+//     this->serialized_schema_bytes_ = SchemaSerializer::serialize_schema(new_schema);
+// }
 
 std::string ServiceBuffer::get_service_name() const {
     return this->service_name_;

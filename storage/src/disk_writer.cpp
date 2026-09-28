@@ -216,7 +216,7 @@ void DiskWriter::run() const {
             }
         case DROP_SERVICE:
             break;
-        case DELETE:
+        case REMOVE:
             break;
         } // switch-end
     } // while-end

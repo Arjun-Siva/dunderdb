@@ -9,7 +9,7 @@
 
 void SchemaMap::add_schema(const std::string& schema_name, std::shared_ptr<Schema> schema) {
     std::unique_lock lock(this->mutex_);
-    this->schemas_.emplace(schema_name, schema);
+    this->schemas_.insert_or_assign(schema_name, schema);
 }
 
 void SchemaMap::delete_schema(const std::string& schema_name) {

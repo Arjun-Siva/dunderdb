@@ -9,7 +9,7 @@
 #include "query_parse_exception.h"
 #include "time_converter.h"
 #include "file_loader.h"
-#include "../include/segment.h"
+#include "segment.h"
 
 SelectHandler::SelectHandler(IndexMap &indexMap, LockMap &lockMap, std::filesystem::path services_directory) :
 index_map_(indexMap), tmp_file_lock_map_(lockMap), services_directory_(std::move(services_directory)){
