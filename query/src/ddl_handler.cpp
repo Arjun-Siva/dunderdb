@@ -18,13 +18,18 @@ std::string DDLHandler::process_ddl_query(const std::string& json_message) const
         return DDLHandler::form_response("error", error_msg.value());
     }
 
+    const std::string msg_type = schema_gen.get_ddl_message_type();
+
     // add the new/updated schema to master schema and write to disk
-    Schema parsed_schema = schema_gen.get_parsed_schema_object();
+    Schema parsed_schema;
+    if (msg_type == "new" || msg_type == "update") {
+        parsed_schema = schema_gen.get_parsed_schema_object();
+    }
     const std::string service_name = schema_gen.get_service_name();
 
     UnvalidatedMessageType type;
 
-    if (const std::string msg_type = schema_gen.get_ddl_message_type(); msg_type == "new") {
+    if (msg_type == "new") {
         type = UnvalidatedMessageType::SCHEMA_NEW;
         write_schema_to_disk(parsed_schema, service_name);
         this->master_schema_map_.add_schema(service_name, std::make_shared<Schema>(std::move(parsed_schema)));
