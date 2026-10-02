@@ -25,7 +25,7 @@ void print_flush_job(const FlushJob& job)
             std::cout << "SEAL";
             break;
         default:
-            std::cout << "UNKNOWN";
+            std::cout << "OTHER";
             break;
     }
 
@@ -57,10 +57,12 @@ size_t estimate_size(const RecordsVector& records) {
 void Validator::add_schema(const Schema& schema) {
     const auto service= schema.get_service_name();
     this->service_schema_map_.insert_or_assign(service, schema);
+    this->buffer_manager_.add_buffer(schema);
 }
 
 void Validator::erase_schema(const std::string& schema_name) {
     this->service_schema_map_.erase(schema_name);
+    this->buffer_manager_.erase_buffer(schema_name);
 }
 
 void Validator::run() {
@@ -78,16 +80,8 @@ void Validator::run() {
 
                 ValidatedMessage message{std::move(records), timestamp_ms, estimated_size};
 
-                // get buffer map
-                ServiceBuffer& serv_buffer = this->buffer_map_.get_buffer(service);
-                //if service buffer returns a FlushJob object, push it to disk queue
-                std::optional<FlushJob> flush_job = serv_buffer.push_and_get_flush_job(message);
-
-                if (flush_job.has_value()) {
-                    // print_flush_job(flush_job.value());
-                    this->disk_queue_.enqueue(std::move(flush_job.value()));
-                }
-
+                // push message to buffer
+                this->buffer_manager_.push_message_to_buffer(service, message);
             }
             else {
                 // dropped
@@ -101,7 +95,7 @@ void Validator::run() {
             Schema schema = schema_gen.get_parsed_schema_object();
 
             this->add_schema(schema);
-            this->buffer_map_.add_buffer(schema);
+            this->buffer_manager_.add_buffer(schema);
         }
 
         else if (type == UnvalidatedMessageType::SCHEMA_UPDATE) {
@@ -109,23 +103,17 @@ void Validator::run() {
             Schema schema = schema_gen.get_parsed_schema_object();
 
             // force flush existing schema
-            ServiceBuffer& serv_buffer = this->buffer_map_.get_buffer(service);
-            std::optional<FlushJob> flush_job = serv_buffer.force_flush_job();
-            if (flush_job.has_value()) {
-                this->disk_queue_.enqueue(std::move(flush_job.value()));
-            }
+            this->buffer_manager_.flush_buffer_and_seal(service);
 
             // add_schema & add_buffer simply replaces the new ServiceBuffer for the existing service name key
             this->add_schema(schema);
-            this->buffer_map_.add_buffer(schema);
+            this->buffer_manager_.add_buffer(schema);
         }
 
         else if (type == UnvalidatedMessageType::SCHEMA_DROP) {
             this->erase_schema(service);
-            this->buffer_map_.erase_buffer(service);
-
-            FlushJob drop_service_job{JobType::DROP_SERVICE, service};
-            this->disk_queue_.enqueue(std::move(drop_service_job));
+            this->buffer_manager_.erase_buffer(service);
+            this->buffer_manager_.delete_service(service);
         }
 
     }
@@ -140,8 +128,5 @@ void Validator::join() {
         this->thread_.join();
     // by this point, the insertion queue is empty, but the service buffers are not empty
     // force flush buffer
-    std::vector<FlushJob> flush_jobs = this->buffer_map_.force_flush_all();
-    for (auto& flush_job : flush_jobs) {
-        this->disk_queue_.enqueue(std::move(flush_job));
-    }
+    this->buffer_manager_.force_flush_all();
 }

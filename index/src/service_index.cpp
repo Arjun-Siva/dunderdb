@@ -9,6 +9,8 @@
 #include <iostream>
 #include <algorithm>
 
+#include "../../util/include/time_converter.h"
+
 void ServiceIndex::append_metadata_to_disk(SegmentMetadata& new_segment_metadata) {
     std::vector<std::byte> serialized_metadata = IndexSerializer::serialize_segment_metadata(new_segment_metadata);
 
@@ -53,53 +55,6 @@ void ServiceIndex::append_segment_metadata(SegmentMetadata& new_segment_metadata
     this->segments_.push_back(std::move(new_segment_metadata));
 }
 
-size_t find_lower_bound(const std::vector<SegmentMetadata>& segments, const int64_t q_start_ts) {
-    size_t left = 0;
-    size_t right = segments.size(); // exclusive
-
-    while (left < right)
-    {
-        size_t mid = left + (right - left) / 2;
-
-        if (segments[mid].end_ts < q_start_ts) {
-            // This segment ends before the query starts.
-            // Everything up to and including mid is irrelevant.
-            left = mid + 1;
-        } else {
-            // segments[mid].e >= Qs
-            // mid could be the answer, so keep it.
-            right = mid;
-        }
-    }
-
-    return left;
-}
-
-size_t find_upper_bound(const std::vector<SegmentMetadata>& segments, const size_t starting_index, const int64_t q_end_ts) {
-    size_t left = starting_index;
-    size_t right = segments.size(); // exclusive
-
-    while (left < right)
-    {
-        size_t mid = left + (right - left) / 2;
-
-        if (segments[mid].end_ts <= q_end_ts)
-        {
-            // This segment can overlap the query.
-            // Look further right for the last possible one.
-            left = mid + 1;
-        }
-        else
-        {
-            // s > Qe, so this and everything after it
-            // cannot overlap the query.
-            right = mid;
-        }
-    }
-
-    return left - 1;
-}
-
 std::vector<std::string> ServiceIndex::index_lookup_time_range(const int64_t start_ts, const int64_t end_ts) const {
     std::vector<std::string> result_file_names;
     // shared lock for simultaneous reads
@@ -139,4 +94,11 @@ void ServiceIndex::erase_index_file_from_disk() const {
     // self annihilation ooo
     const std::filesystem::path index_file_path = this->index_file_directory_ / std::string(this->service_name_ + ".idx");
     std::filesystem::remove(index_file_path);
+}
+
+void ServiceIndex::print_index_file_ranges() const {
+    std::cout<<this->service_name_<<":"<<std::endl;
+    for (const auto& [start_ts, end_ts, count, filename] : this->segments_) {
+        std::cout<<filename<<" : "<<TimeConverter::epoch_ms_to_iso(start_ts)<<" - "<<TimeConverter::epoch_ms_to_iso(end_ts)<<";"<<count<<std::endl;
+    }
 }

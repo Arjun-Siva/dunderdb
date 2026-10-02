@@ -80,6 +80,7 @@ add_library(storage
         storage/src/buffer_map.cpp
         storage/src/service_buffer.cpp
         storage/src/disk_writer.cpp
+        storage/src/buffer_manager.cpp
 )
 
 target_include_directories(storage PUBLIC

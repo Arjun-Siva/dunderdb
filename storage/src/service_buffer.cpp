@@ -10,6 +10,7 @@ void ServiceBuffer::update_buffer(ValidatedMessage &message) {
         // this is the first message of the new file
         this->current_segment_starting_ts_ = message.timestamp;
     }
+    this->current_segment_ending_ts_ = message.timestamp;
     this->current_batch_size_bytes_ += message.estimated_size;
     this->current_segment_message_count_ += 1;
     this->message_buffer_.push_back(std::move(message));
@@ -110,25 +111,27 @@ std::optional<FlushJob> ServiceBuffer::force_flush_job() {
             // rare condition when at the moment of force_flush, the buffer has very few messages and no temp file
             // since it's rare, the number of tiny segment files are rare
             // even if the system is not terminated, the buffer can continue normally after force flush
-            this->current_segment_ending_ts_ = this->message_buffer_.back().timestamp;
             return create_flush_job(JobType::NEW_SEAL);
         }
-        // even rarer
+        // this could (usually) happen when no data is inserted for this service
         return std::nullopt;
     }
     // dump all the contents into a SEAL job
+    // if batch is empty, no messages will be appended to the file, but the tmp file will still be renamed
     return create_flush_job(JobType::SEAL);
 }
 
-// void ServiceBuffer::update_schema(const Schema &new_schema) {
-//     std::string new_schema_name = new_schema.get_service_name();
-//
-//     if (this->service_name_ != new_schema_name) {
-//         throw std::runtime_error("Service name does not match new schema");
-//     }
-//
-//     this->serialized_schema_bytes_ = SchemaSerializer::serialize_schema(new_schema);
-// }
+std::optional<FlushJob> ServiceBuffer::force_flush_append() {
+    if (this->current_segment_size_bytes_ == 0) {
+        if (this->current_batch_size_bytes_ > 0) {
+            return create_flush_job(JobType::NEW);
+        }
+        return std::nullopt;
+    }
+    // dump all the contents into a APPEND job without sealing
+    return create_flush_job(JobType::APPEND);
+}
+
 
 std::string ServiceBuffer::get_service_name() const {
     return this->service_name_;

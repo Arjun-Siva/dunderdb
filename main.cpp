@@ -25,18 +25,25 @@ void handle_signal(const int signal)
     }
 }
 
-int main() {
+int main(int argc, char* argv[]) {
     std::signal(SIGTERM, handle_signal);
     std::signal(SIGINT, handle_signal);
 
     std::cout << "Starting __DunderDB__" << std::endl;
+
+    if (argc < 2) {
+        std::cerr << "Specify working directory for DunderDB" << std::endl;
+    }
+
+    std::filesystem::path working_directory = argv[1];
+
     CommonQueue<UnvalidatedMessage> insertion_queue;
     SchemaMap master_schema_map;
 
     // load schemas
-    std::string services_directory = "/home/arjunsiva/dunderdb/data/services";
-    std::string indexes_directory = "/home/arjunsiva/dunderdb/data/indexes";
-    std::string schemas_directory = "/home/arjunsiva/dunderdb/data/schemas";
+    std::filesystem::path services_directory = working_directory / "services";
+    std::filesystem::path indexes_directory = working_directory / "indexes";
+    std::filesystem::path schemas_directory = working_directory / "schemas";
 
     std::vector<Schema> schemas_from_disk = SchemaLoader::load_schemas(std::filesystem::path{schemas_directory});
 
@@ -47,37 +54,35 @@ int main() {
 
     std::cout << "Schemas loaded" << std::endl;
 
-    // create buffer map
-    BufferMap buffer_map{512, 32};
+
     // Map of locks for .tmp files
     LockMap tmp_file_lock_map;
-    // create unique pointers of service buffers and add em to buffer map
-    for (const auto& schema : schemas_from_disk) {
-        const auto service_name = schema.get_service_name();
-        buffer_map.add_buffer(schema);
-        tmp_file_lock_map.create(service_name);
-    }
-
-    std::cout << "Buffer Map loaded" << std::endl;
 
     // create Flush job queue
     CommonQueue<FlushJob> disk_queue;
 
+    BufferManager buffer_manager{disk_queue, 512, 32};
+
     // load validator with schemas and validate them. validator has a map service -> schema
-    Validator validator{insertion_queue, buffer_map, disk_queue};
+    Validator validator{insertion_queue, buffer_manager};
 
     // load indexes from disk
     IndexMap master_index_map; // passed as reference and the indexes are loaded into the map
     IndexLoader::load_indexes(indexes_directory, master_index_map);
 
     for (const auto& schema : schemas_from_disk) {
-        validator.add_schema(schema);
+        const auto service_name = schema.get_service_name();
+
+        validator.add_schema(schema); // schemas are added to the BufferManager too
+
+        tmp_file_lock_map.create(service_name);
 
         // add empty indexes to index map for services that are present in schema map, but not in index map
-        if (const std::string service_name = schema.get_service_name(); !master_index_map.contains(service_name)) {
+        if (!master_index_map.contains(service_name)) {
             master_index_map.add_index(service_name, std::make_shared<ServiceIndex>(service_name, indexes_directory));
         }
     }
+    std::cout << "BufferManager loaded" << std::endl;
     std::cout << "Indexes loaded" << std::endl;
 
     validator.start();
@@ -95,7 +100,7 @@ int main() {
 
     std::cout << "Disk Writer started" << std::endl;
 
-    SelectHandler select_handler{master_index_map, tmp_file_lock_map, services_directory};
+    SelectHandler select_handler{master_index_map, tmp_file_lock_map, buffer_manager, services_directory};
     QueryReceiver query_receiver{select_handler};
     query_receiver.start();
 
@@ -126,6 +131,8 @@ int main() {
     //5. DiskWriter drains remaining flush jobs, including the forced ones
     disk_writer.join();
     std::cout << "Disk Writer stopped" << std::endl;
+
+    // Abrupt end for query receiver and handlers
 
     std::cout << "Stopped __DunderDB__" << std::endl;
     return 0;

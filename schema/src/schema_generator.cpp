@@ -235,6 +235,7 @@ std::optional<std::string> SchemaGenerator::get_ddl_error_message(const SchemaMa
         return this->error_message_;
     }
 
+    // TODO: for update, throw error if the old and new schema are exactly the same. this would be helpful in the schema versioning and eventually in chunking
     if (this->ddl_type_ == "new" && schema_map.contains(this->service_name_)) {
         this->set_error_message_and_validity("Service already exists");
         return this->error_message_;

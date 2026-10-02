@@ -42,7 +42,7 @@ void write_schema_to_disk(std::string&& name, std::vector<std::byte> schema_byte
 }
 
 int main() {
-    const std::string original = "2026-09-17T10:23:45Z";
+    const std::string original = "2026-10-02T16:20:23.845Z";
 
     const int64_t epoch_ms =
         TimeConverter::utc_to_epoch_ms(original);
@@ -63,7 +63,7 @@ int main() {
 
     // 1790164173913
     // 1790164173918
-    const int64_t ms = 1790164112568;
+    const int64_t ms = 1790953212954;
     std::cout<< "Converted ms:" <<TimeConverter::epoch_ms_to_iso(ms);
 
     return 0;

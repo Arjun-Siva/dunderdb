@@ -5,6 +5,8 @@
 #ifndef DUNDERDB_VALIDATOR_H
 #define DUNDERDB_VALIDATOR_H
 #include <unordered_map>
+
+#include "buffer_manager.h"
 #include "schema.h"
 #include "common_queue.h"
 #include "unvalidated_message.h"
@@ -17,8 +19,8 @@ public:
     Validator(Validator&&) = delete;
     Validator& operator=(const Validator&) = delete;
     Validator& operator=(Validator&&) = delete;
-    explicit Validator(CommonQueue<UnvalidatedMessage>& queue, BufferMap& buffer_map, CommonQueue<FlushJob>& disk_queue) : insertion_queue_(queue),
-        buffer_map_(buffer_map), disk_queue_(disk_queue) {
+    explicit Validator(CommonQueue<UnvalidatedMessage>& queue, BufferManager& buffer_mgr) : insertion_queue_(queue),
+        buffer_manager_(buffer_mgr) {
     };
     ~Validator() = default;
 
@@ -29,8 +31,7 @@ public:
 private:
     CommonQueue<UnvalidatedMessage>& insertion_queue_;
     std::unordered_map<std::string, Schema> service_schema_map_;
-    BufferMap& buffer_map_;
-    CommonQueue<FlushJob>& disk_queue_;
+    BufferManager& buffer_manager_;
     std::thread thread_;
     void run();
 };

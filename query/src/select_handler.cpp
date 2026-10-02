@@ -11,8 +11,8 @@
 #include "file_loader.h"
 #include "segment.h"
 
-SelectHandler::SelectHandler(IndexMap &indexMap, LockMap &lockMap, std::filesystem::path services_directory) :
-index_map_(indexMap), tmp_file_lock_map_(lockMap), services_directory_(std::move(services_directory)){
+SelectHandler::SelectHandler(IndexMap &indexMap, LockMap &lockMap, BufferManager& buffer_manager, std::filesystem::path services_directory) :
+index_map_(indexMap), tmp_file_lock_map_(lockMap), buffer_manager_(buffer_manager),services_directory_(std::move(services_directory)){
 }
 
 std::string SelectHandler::get_query_result(const std::string& json_payload) const {
@@ -21,6 +21,7 @@ std::string SelectHandler::get_query_result(const std::string& json_payload) con
     // index look up on ranges
     // TODO: catch missing service names
     const std::shared_ptr<ServiceIndex> service_index = this->index_map_.get_index(query.service_name);
+    service_index->print_index_file_ranges();
     std::vector<std::string> file_names = service_index->index_lookup_time_range(query.start_time, query.end_time);
 
     rapidjson::StringBuffer buffer;
@@ -43,6 +44,10 @@ std::string SelectHandler::get_query_result(const std::string& json_payload) con
     // check if tmp file is part of the query and read it first
     // tmp file, if present, will always be the last element
     if (file_names.back() == "seg_" + query.service_name + ".tmp") {
+        // nudge the buffer to flush to disk, but it is not guaranteed to be read
+        // but the chances increases on the next read query. Eventual Visibility
+        this->buffer_manager_.flush_buffer_without_sealing(query.service_name);
+
         std::vector<std::byte> tmp_file_bytes;
         // acquire read lock
         //query.service_name is the key, not entire file name

@@ -32,12 +32,6 @@ public:
 
         auto [_it, inserted] =
             locks_.try_emplace(key, std::make_shared<std::shared_mutex>());
-
-        if (!inserted) {
-            throw std::invalid_argument(
-                "LockMap: lock already exists for key: " + key
-            );
-        }
     }
 
     /**

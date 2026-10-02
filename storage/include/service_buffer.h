@@ -31,6 +31,7 @@ public:
     std::optional<FlushJob> push_and_get_flush_job(ValidatedMessage &message);
 
     std::optional<FlushJob> force_flush_job();
+    std::optional<FlushJob> force_flush_append();
 
     // void update_schema(const Schema& new_schema);
     // void update_schema_bytes(const Schema& schema);
@@ -54,9 +55,7 @@ private:
     std::vector<std::byte> serialized_schema_bytes_;
 
     void update_buffer(ValidatedMessage &message);
-
     FlushJob create_flush_job(JobType type);
-
     std::string create_segment_file_name() const;
 };
 

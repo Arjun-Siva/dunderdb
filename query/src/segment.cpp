@@ -40,6 +40,7 @@ Segment::Segment(const std::vector<std::byte>& segment_binary) {
         throw std::runtime_error("Corrupted segment file");
     }
 
+    // this filename will be the intended file name of the tmp file after sealing, not seg_service.tmp
     std::string file_name;
     file_name.resize(filename_size);
     std::memcpy(file_name.data(), segment_binary.data() + offset, filename_size);
