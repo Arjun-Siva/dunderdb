@@ -41,5 +41,4 @@ private:
 // Exclusive lock for a particular service is acquired before pushing or flushing
 // LockMap has its own lock and thread-safe for creating and deleting
 // On add_buffer, first create a new lock, acquire that lock and then create new buffer
-// On erase_buffer, acquire the lock on the key, drop the buffer from map, release the lock, and then remove from LockMap
-// There could be a race condition in erase_buffer, where another thread acquires the lock from LockMap before the key is removed from the LockMap
+// On erase_buffer, acquire the lock on the key, drop the buffer from map, release the lock

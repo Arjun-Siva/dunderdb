@@ -9,7 +9,7 @@
 #include <iostream>
 #include <algorithm>
 
-#include "../../util/include/time_converter.h"
+#include "time_converter.h"
 
 void ServiceIndex::append_metadata_to_disk(SegmentMetadata& new_segment_metadata) {
     std::vector<std::byte> serialized_metadata = IndexSerializer::serialize_segment_metadata(new_segment_metadata);

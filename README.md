@@ -1,4 +1,4 @@
-# dunderdb
+# DunderDB
 
 Log ingestion/Time series database
 
@@ -7,7 +7,7 @@ Log ingestion/Time series database
 
                          ┌──────────────────────┐
                          │        Client        │
-                         │      C++ API         │
+                         │       C++ API        │
                          └──────────┬───────────┘
                                     ▲ 
                               ZeroMQ / JSON
@@ -23,7 +23,7 @@ Log ingestion/Time series database
                     │                               │
                     ▼                               ▼
              ┌─────────────┐              ┌─────────────────┐
-             │ Common Queue│              │ Select Thread   │
+             │ Ingest Queue│              │ Select Thread   │
              └──────┬──────┘              └────────┬────────┘
                     │                              │
                     ▼                              ▼

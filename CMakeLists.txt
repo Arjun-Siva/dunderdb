@@ -73,6 +73,10 @@ target_include_directories(index PUBLIC
         index/include
 )
 
+target_link_libraries(index PUBLIC
+        util
+)
+
 
 # storage library
 add_library(storage
@@ -153,3 +157,5 @@ target_link_libraries(test
         startup
         query
 )
+
+add_subdirectory(client_sdk)
