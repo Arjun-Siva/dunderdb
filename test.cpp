@@ -14,6 +14,10 @@
 #include "select_handler.h"
 #include "time_converter.h"
 
+/**
+ * THIS IS A TEST FILE, FOR ONE-OFF EXPERIMENTS. Not part of DunderDB
+ */
+
 void write_schema_to_disk(std::string&& name, std::vector<std::byte> schema_bytes, const std::string& schemas_directory) {
     const std::filesystem::path schema_file_path = schemas_directory + "/" + name+ ".sch";
 

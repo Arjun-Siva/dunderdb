@@ -7,7 +7,6 @@
 #include "schema.h"
 #include "unvalidated_message.h"
 #include "validator.h"
-#include "service_buffer.h"
 #include "buffer_map.h"
 #include "disk_writer.h"
 #include "index_loader.h"
@@ -33,6 +32,7 @@ int main(int argc, char* argv[]) {
 
     if (argc < 2) {
         std::cerr << "Specify working directory for DunderDB" << std::endl;
+        return -1;
     }
 
     std::filesystem::path working_directory = argv[1];

@@ -157,5 +157,3 @@ target_link_libraries(test
         startup
         query
 )
-
-add_subdirectory(client_sdk)
