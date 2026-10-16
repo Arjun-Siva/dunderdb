@@ -69,12 +69,14 @@ Log ingestion/Time series database
 [x] Handle schema DDL and changes in validator, index map, and disk writer \
 [x] Index lookup for time range, load files, form reply JSON \
 [x] Eventual visibility - Query handler signals BufferMap for APPEND when it requires tmp file \
-[] Client API with ZMQ for pushing data and querying \
+[x] Client API with ZMQ for pushing data and querying \
 [] Delete query
 
 ---
 [] Unit tests \
 [] Dockerize \
+[] Random insertion \
+[] Timestamps from client \
 [] Thread pool for disk writer \
 [] Pagination for retrieval queries \
 [] Stats on indexes \
