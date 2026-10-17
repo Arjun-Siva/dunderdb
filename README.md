@@ -1,57 +1,8 @@
 # DunderDB
-
-Log ingestion/Time series database
+Ingestion-optimized Time Series Database
 
 ### Architecture
-
-
-                         ┌──────────────────────┐
-                         │        Client        │
-                         │       C++ API        │
-                         └──────────┬───────────┘
-                                    ▲ 
-                              ZeroMQ / JSON
-                                    │
-                                    ▼
-                         ┌──────────────────────┐
-                         │   Network Receiver   │
-                         └──────────┬───────────┘
-                                    │
-                    ┌───────────────┴───────────────┐
-                    │                               │
-                  INSERT                          SELECT
-                    │                               │
-                    ▼                               ▼
-             ┌─────────────┐              ┌─────────────────┐
-             │ Ingest Queue│              │ Select Thread   │
-             └──────┬──────┘              └────────┬────────┘
-                    │                              │
-                    ▼                              ▼
-             ┌─────────────┐              ┌─────────────────┐
-             │  Validator  │              │ Query Resolver  │
-             └──────┬──────┘              └────────┬────────┘
-                    │                              │
-                    ▼                              │
-             ┌─────────────┐                       │
-             │   Service   │                       │
-             │   Buffers   │                       │
-             └──────┬──────┘                       │
-                    │                              │
-                    ▼                              ▼
-             ┌─────────────┐                ┌─────────────┐
-             │ Disk Queue  │                │    Index    │
-             └──────┬──────┘                └──────┬───┬──┘
-                    │                              ▲   |
-                    ▼                              │   |
-             ┌─────────────┐                       │   |
-             │ Disk Writer │──────────update───────┘   |
-             └──────┬──────┘                           |
-                    │                                  |
-                    ▼                                  |
-             ┌─────────────┐                           |
-             │   Storage   │◄──────────query────────── +
-             │   Segments  │               
-             └─────────────┘               
+<img width="1654" height="612" alt="Dunderdb drawio (1)" src="https://github.com/user-attachments/assets/4d4c1022-b115-4d84-a7a8-1a6cbe790390" /> 
 
 ### Development Roadmap
 #### MVP
