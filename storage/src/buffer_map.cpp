@@ -18,9 +18,9 @@ void BufferMap::add_buffer(const std::string& service, std::unique_ptr<ServiceBu
     buffers_.insert_or_assign(service, std::move(buffer)); // pointer ownership moved to the unordered map
 }
 
-void BufferMap::add_buffer(Schema schema) {
+void BufferMap::add_buffer(Schema schema, uint64_t next_message_seq_id) {
     const std::string service_name = schema.get_service_name();
-    auto service_buffer_ptr = std::make_unique<ServiceBuffer>(schema, this->buffer_batch_size_kb_, this->segment_size_mb_); // lives in the heap memory
+    auto service_buffer_ptr = std::make_unique<ServiceBuffer>(schema, this->buffer_batch_size_kb_, this->segment_size_mb_, next_message_seq_id); // lives in the heap memory
     this->add_buffer(service_name, std::move(service_buffer_ptr));
 }
 

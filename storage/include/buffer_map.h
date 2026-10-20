@@ -13,7 +13,7 @@ class BufferMap {
 public:
     BufferMap(size_t buffer_batch_size_kb, size_t segment_size_mb);
     void add_buffer(const std::string &service, std::unique_ptr<ServiceBuffer> buffer);
-    void add_buffer(Schema schema);
+    void add_buffer(Schema schema, uint64_t next_message_seq_id);
     void erase_buffer(const std::string &service);
     ServiceBuffer& get_buffer(const std::string& service) const;
     bool contains(const std::string& service) const;

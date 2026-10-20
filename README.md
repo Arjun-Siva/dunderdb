@@ -21,15 +21,17 @@ Ingestion-optimized Time Series Database
 [x] Index lookup for time range, load files, form reply JSON \
 [x] Eventual visibility - Query handler signals BufferMap for APPEND when it requires tmp file \
 [x] Client API with ZMQ for pushing data and querying \
-[] Delete query
+[] Sequence numbers for messages, update headers \
+[] Delete query - Tombstones on disk, and Query handler reads them
 
 ---
 [] Unit tests \
-[] Dockerize \
-[] Random insertion \
+[] Conan for dependencies \
+[] Random out-of-order insertion \
 [] Timestamps from client \
 [] Thread pool for disk writer \
 [] Pagination for retrieval queries \
+[] Segment LRU cache \
 [] Stats on indexes \
 [] Schema versioning \
 [] Chunking smaller segments into larger files \

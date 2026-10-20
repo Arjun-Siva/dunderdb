@@ -85,6 +85,7 @@ add_library(storage
         storage/src/service_buffer.cpp
         storage/src/disk_writer.cpp
         storage/src/buffer_manager.cpp
+        storage/src/segment_header.cpp
 )
 
 target_include_directories(storage PUBLIC

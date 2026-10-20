@@ -21,6 +21,7 @@ public:
     void load_segment_metadata_list(std::vector<SegmentMetadata>& segment_metadata_list);
     void append_segment_metadata(SegmentMetadata& new_segment_metadata);
     std::vector<std::string> index_lookup_time_range(int64_t start_ts, int64_t end_ts) const;
+    std::string get_latest_segment_name() const;
     void erase_index_file_from_disk() const;
     void print_index_file_ranges() const;
     // TODO: take care of broken/incomplete files on loading

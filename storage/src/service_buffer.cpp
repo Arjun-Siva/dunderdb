@@ -5,7 +5,7 @@
 
 #include <chrono>
 
-void ServiceBuffer::update_buffer(ValidatedMessage &message) {
+void ServiceBuffer::update_buffer(const ValidatedMessage &message) {
     if (this->current_segment_size_bytes_ == 0 && this->current_batch_size_bytes_ == 0) {
         // this is the first message of the new file
         this->current_segment_starting_ts_ = message.timestamp;
@@ -13,7 +13,8 @@ void ServiceBuffer::update_buffer(ValidatedMessage &message) {
     this->current_segment_ending_ts_ = message.timestamp;
     this->current_batch_size_bytes_ += message.estimated_size;
     this->current_segment_message_count_ += 1;
-    this->message_buffer_.push_back(std::move(message));
+    this->message_buffer_.push_back({this->next_message_seq_id_, message});
+    this->next_message_seq_id_ += 1;
 }
 
 std::string ServiceBuffer::create_segment_file_name() const {
@@ -28,7 +29,7 @@ std::string ServiceBuffer::create_segment_file_name() const {
 FlushJob ServiceBuffer::create_flush_job(const JobType type) {
     if (type == JobType::APPEND) {
         auto append_job = FlushJob{
-            type, this->service_name_, std::move(this->message_buffer_), this->current_segment_name_
+            type, this->service_name_, std::move(this->message_buffer_), std::nullopt
         };
         this->message_buffer_.clear();
         this->current_segment_size_bytes_ += this->current_batch_size_bytes_;
@@ -36,11 +37,20 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
         return append_job;
     }
     if (type == JobType::SEAL) {
-        auto seal_job = FlushJob{
-            type, this->service_name_, std::move(this->message_buffer_),
-            this->current_segment_name_, this->serialized_schema_bytes_,
-            this->current_segment_starting_ts_, this->current_segment_ending_ts_, this->current_segment_message_count_
+        SegmentHeader header{
+            this->current_segment_name_,
+            this->serialized_schema_bytes_
         };
+
+        header.set_segment_starting_ts(this->current_segment_starting_ts_);
+        header.set_segment_ending_ts(this->current_segment_ending_ts_);
+        header.set_segment_message_count(this->current_segment_message_count_);
+        header.set_max_message_id(this->next_message_seq_id_ - 1);
+
+        auto seal_job = FlushJob{
+            type, this->service_name_, std::move(this->message_buffer_), std::move(header)
+        };
+
         this->message_buffer_.clear();
         this->current_segment_size_bytes_ = 0;
         this->current_batch_size_bytes_ = 0;
@@ -56,10 +66,19 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
 
     if (type == JobType::NEW_SEAL) {
         // create a new file and seal it immediately
+
+        SegmentHeader header{
+            this->current_segment_name_,
+            this->serialized_schema_bytes_
+        };
+
+        header.set_segment_starting_ts(this->current_segment_starting_ts_);
+        header.set_segment_ending_ts(this->current_segment_ending_ts_);
+        header.set_segment_message_count(this->current_segment_message_count_);
+        header.set_max_message_id(this->next_message_seq_id_ - 1);
+
         auto new_seal_job = FlushJob{
-            type, this->service_name_, std::move(this->message_buffer_),
-            this->current_segment_name_, this->serialized_schema_bytes_,
-            this->current_segment_starting_ts_, this->current_segment_ending_ts_, this->current_segment_message_count_
+            type, this->service_name_, std::move(this->message_buffer_), std::move(header)
         };
         this->message_buffer_.clear();
         this->current_segment_size_bytes_ = 0;
@@ -69,9 +88,14 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
         return new_seal_job;
     }
 
+    // NEW job type
+    // send a placeholder header, which will be exactly the same size as the final one
+    SegmentHeader placeholder {
+        this->current_segment_name_,
+            this->serialized_schema_bytes_
+    };
     // add the message buffer data
-    auto new_job = FlushJob{type, this->service_name_, std::move(this->message_buffer_),
-        this->current_segment_name_,this->serialized_schema_bytes_};
+    auto new_job = FlushJob{type, this->service_name_, std::move(this->message_buffer_), std::move(placeholder)};
     this->message_buffer_.clear();
     this->current_segment_size_bytes_ += this->current_batch_size_bytes_;
     this->current_batch_size_bytes_ = 0;
@@ -80,6 +104,7 @@ FlushJob ServiceBuffer::create_flush_job(const JobType type) {
 
 std::optional<FlushJob> ServiceBuffer::push_and_get_flush_job(ValidatedMessage &message) {
     // add message to the buffer, update batch current size, count, starting ts
+    // ValidatedMessage will be converted to SequencedMessage
     update_buffer(message);
 
     // if segment file size is zero, create a NEW type FlushJob
@@ -147,4 +172,8 @@ size_t ServiceBuffer::get_current_batch_size_bytes() const {
 
 size_t ServiceBuffer::get_current_segment_size_bytes() const {
     return this->current_segment_size_bytes_;
+}
+
+uint64_t ServiceBuffer::get_last_message_seq_id() const {
+    return this->next_message_seq_id_ - 1;
 }

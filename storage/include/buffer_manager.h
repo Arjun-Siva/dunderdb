@@ -17,9 +17,10 @@ class BufferManager
     BufferManager(BufferManager&& other) = delete;
     BufferManager(BufferManager& other) = delete;
 
-    void add_buffer(Schema const& schema);
+    void add_buffer(Schema const& schema, uint64_t next_message_seq_id);
     void erase_buffer(const std::string &service);
     bool contains(const std::string& service);
+    uint64_t get_last_message_seq_id(const std::string& service);
 
     void push_message_to_buffer(const std::string& service, ValidatedMessage& message);
     void flush_buffer_and_seal(const std::string& service);

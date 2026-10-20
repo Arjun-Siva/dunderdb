@@ -7,8 +7,9 @@
 
 #include <string>
 #include <vector>
-#include "validated_message.h"
 
+#include "sequenced_message.h"
+#include "segment_header.h"
 
 enum JobType {
     NEW,
@@ -22,12 +23,8 @@ enum JobType {
 struct FlushJob {
     JobType type;
     std::string service_name;
-    std::vector <ValidatedMessage> validated_messages;
-    std::string file_name;
-    std::vector<std::byte> header_bytes;
-    int64_t segment_starting_ts;
-    int64_t segment_ending_ts;
-    uint32_t segment_message_count;
+    std::vector <SequencedMessage> sequenced_messages;
+    std::optional<SegmentHeader> header;
 };
 
 #endif //DUNDERDB_FLUSH_JOB_H

@@ -24,7 +24,7 @@ public:
     };
     ~Validator() = default;
 
-    void add_schema(const Schema& schema);
+    void add_schema(const Schema& schema, uint64_t next_message_seq_id);
     void erase_schema(const std::string& schema_name);
     void start();
     void join();

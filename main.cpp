@@ -73,7 +73,8 @@ int main(int argc, char* argv[]) {
     for (const auto& schema : schemas_from_disk) {
         const auto service_name = schema.get_service_name();
 
-        validator.add_schema(schema); // schemas are added to the BufferManager too
+        // TODO: add correct message seq id
+        validator.add_schema(schema, 1); // schemas are added to the BufferManager too
 
         tmp_file_lock_map.create(service_name);
 

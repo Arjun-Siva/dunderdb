@@ -29,10 +29,17 @@ void print_flush_job(const FlushJob& job)
             break;
     }
 
+    auto header = job.header;
+    std::string filename = "";
+    if (header.has_value()) {
+        auto header_val = header.value();
+        filename = header_val.get_filename();
+    }
+
     std::cout << "\n";
     std::cout << "  service_name: " << job.service_name << "\n";
-    std::cout << "  file_name: " << job.file_name << "\n";
-    std::cout << "  message_count: " << job.validated_messages.size() << "\n";
+    std::cout << "  file_name: " << filename << "\n";
+    std::cout << "  message_count: " << job.sequenced_messages.size() << "\n";
     std::cout << "}\n";
 }
 
@@ -54,10 +61,10 @@ size_t estimate_size(const RecordsVector& records) {
     return estimated_size;
 }
 
-void Validator::add_schema(const Schema& schema) {
+void Validator::add_schema(const Schema& schema, const uint64_t next_message_seq_id) {
     const auto service= schema.get_service_name();
     this->service_schema_map_.insert_or_assign(service, schema);
-    this->buffer_manager_.add_buffer(schema);
+    this->buffer_manager_.add_buffer(schema, next_message_seq_id);
 }
 
 void Validator::erase_schema(const std::string& schema_name) {
@@ -94,8 +101,8 @@ void Validator::run() {
             SchemaGenerator schema_gen{payload};
             Schema schema = schema_gen.get_parsed_schema_object();
 
-            this->add_schema(schema);
-            this->buffer_manager_.add_buffer(schema);
+            // also added in Buffer Manager
+            this->add_schema(schema, 1);
         }
 
         else if (type == UnvalidatedMessageType::SCHEMA_UPDATE) {
@@ -104,10 +111,11 @@ void Validator::run() {
 
             // force flush existing schema
             this->buffer_manager_.flush_buffer_and_seal(service);
+            // get last seq id from the buffer so that the seq can continue
+            uint64_t last_message_seq_id = this->buffer_manager_.get_last_message_seq_id(service);
 
             // add_schema & add_buffer simply replaces the new ServiceBuffer for the existing service name key
-            this->add_schema(schema);
-            this->buffer_manager_.add_buffer(schema);
+            this->add_schema(schema, last_message_seq_id + 1);
         }
 
         else if (type == UnvalidatedMessageType::SCHEMA_DROP) {

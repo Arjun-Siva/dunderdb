@@ -7,11 +7,12 @@
 
 #include "message_serializer.h"
 #include "schema_serializer.h"
+#include "segment_header.h"
 #include "time_converter.h"
 
 Segment::Segment(const std::vector<std::byte>& segment_binary) {
     // parse the binary blob into schema and messages
-    // header_size (uint32) | file_name_size (uint32) | file name | schema binary size (uint32) | schema binary | messages ....
+    // header_size (uint32) | header_binary | messages ....
 
     size_t offset = 0;
     uint32_t header_size;
@@ -27,45 +28,16 @@ Segment::Segment(const std::vector<std::byte>& segment_binary) {
         throw std::runtime_error("Corrupted segment file");
     }
 
-    uint32_t filename_size;
-
-    if (offset + sizeof(uint32_t) > segment_binary.size()) {
-        throw std::runtime_error("Corrupted segment file");
-    }
-
-    std::memcpy(&filename_size, segment_binary.data() + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    if (offset + filename_size > segment_binary.size()) {
-        throw std::runtime_error("Corrupted segment file");
-    }
-
-    // this filename will be the intended file name of the tmp file after sealing, not seg_service.tmp
-    std::string file_name;
-    file_name.resize(filename_size);
-    std::memcpy(file_name.data(), segment_binary.data() + offset, filename_size);
-    offset += filename_size;
-
-    uint32_t schema_binary_size;
-    if (offset + sizeof(uint32_t) > segment_binary.size()) {
-        throw std::runtime_error("Corrupted segment file");
-    }
-
-    std::memcpy(&schema_binary_size, segment_binary.data() + offset, sizeof(uint32_t));
-    offset += sizeof(uint32_t);
-
-    if (offset + schema_binary_size > segment_binary.size()) {
-        throw std::runtime_error("Corrupted segment file");
-    }
-
-    const auto binary_span = std::span<const std::byte>(
+    const auto header_binary_span = std::span<const std::byte>(
         segment_binary.data() + offset,
-        schema_binary_size);
+        header_size);
 
-    Schema segment_schema = SchemaSerializer::deserialize_bytes_to_schema(binary_span);
+    const SegmentHeader header{header_binary_span};
+
+    Schema segment_schema = SchemaSerializer::deserialize_bytes_to_schema(header.get_schema_bytes());
     this->schema_ = std::move(segment_schema);
 
-    offset += schema_binary_size;
+    offset += header_size;
 
     // Messages = Message size (uint32) | Message binary | ....
     while (offset < segment_binary.size()) {
@@ -84,7 +56,7 @@ Segment::Segment(const std::vector<std::byte>& segment_binary) {
         const auto message_span = std::span(segment_binary.data() + offset, message_size);
         // not catching exceptions since if one message is corrupted, the entire file is corrupted
 
-        ValidatedMessage message = MessageSerializer::deserialize_message(this->schema_, message_span);
+        SequencedMessage message = MessageSerializer::deserialize_message(this->schema_, message_span);
         this->messages_vector_.push_back(std::move(message));
 
         offset += message_size;
@@ -98,12 +70,14 @@ void Segment::append_query_results(const ParsedSelectQuery& query,
     // construct message strings
     const auto columns = this->schema_.get_columns_in_order();
 
-    for (const auto& message : this->messages_vector_) {
+    for (const auto& [msg_id, message] : this->messages_vector_) {
         if (!skip_time_filter && (message.timestamp < query.start_time || message.timestamp > query.end_time))
             continue;
 
         std::string timestamp = TimeConverter::epoch_ms_to_iso(message.timestamp);
         writer.StartObject();
+        writer.Key("message_id");
+        writer.Uint64(msg_id);
         writer.Key("timestamp");
         writer.String(timestamp.c_str());
         writer.Key("content");

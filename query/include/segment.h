@@ -11,6 +11,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "parsed_select_query.h"
+#include "sequenced_message.h"
 
 class Segment
 {
@@ -27,7 +28,7 @@ public:
 
 private:
     Schema schema_;
-    std::vector<ValidatedMessage> messages_vector_;
+    std::vector<SequencedMessage> messages_vector_;
 };
 
 #endif //DUNDERDB_SEGMENT_H

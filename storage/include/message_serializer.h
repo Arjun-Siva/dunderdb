@@ -8,31 +8,33 @@
 #include <vector>
 #include <cstring>
 #include <span>
-
-#include "validated_message.h"
+#include "sequenced_message.h"
 
 class MessageSerializer
 {
 public:
-    static std::vector<std::byte> serialize_message(const ValidatedMessage& message) {
+    static std::vector<std::byte> serialize_message(const SequencedMessage& message) {
         // Includes the message size - Message size(uint32) | message blob
         std::vector<std::byte> buffer;
-
+        auto [message_id, validated_message] = message;
         // Reserve a reasonable amount to reduce reallocations, this doesn't include the string sizes
-        buffer.reserve(message.estimated_size + sizeof(uint32_t));
+        buffer.reserve(validated_message.estimated_size + sizeof(uint32_t) + sizeof(uint64_t));
 
         // add a placeholder for the total message size
         // 4 bytes unsigned
         append_to_buffer(buffer, uint32_t{0});
 
+        // message id is fixed size of uint64_t
+        append_to_buffer(buffer, message_id);
+
         // timestamp is fixed size int64_t in all messages
-        append_to_buffer(buffer, message.timestamp);
+        append_to_buffer(buffer, validated_message.timestamp);
 
         // Build NULL bitmap, 8 bytes fixed. Max columns - 64
         std::bitset<64> bitmap;
 
-        for (size_t i = 0; i < message.records.size(); ++i) {
-            if (message.records[i].has_value()) {
+        for (size_t i = 0; i < validated_message.records.size(); ++i) {
+            if (validated_message.records[i].has_value()) {
                 bitmap.set(i);
             }
         }
@@ -42,7 +44,7 @@ public:
         append_to_buffer(buffer, bitmap.to_ullong());
 
         // Serialize values.
-        for (const auto& field : message.records) {
+        for (const auto& field : validated_message.records) {
             if (!field.has_value()) {
                 continue;
             }
@@ -62,17 +64,26 @@ public:
 
         // Overwrite record placeholder size
         // since the buffer vector uses one byte per element, the size in bytes is simply the number of elements
-        const uint32_t record_size = static_cast<uint32_t>(buffer.size() - sizeof(uint32_t));
+        const auto record_size = static_cast<uint32_t>(buffer.size() - sizeof(uint32_t));
         std::memcpy(buffer.data(), &record_size, sizeof(record_size));
 
         return buffer;
     }
 
-    static ValidatedMessage deserialize_message(const Schema& schema, const std::span<const std::byte> bytes_vector) {
-        // doesn't contain the size of the message
-        // timestamp(int64) | null bitmap (unsigned long long) | Values ...
+    static SequencedMessage deserialize_message(const Schema& schema, const std::span<const std::byte> bytes_vector) {
+        // NOTE: bytes_vector doesn't contain the size of the message
+        // message_id(uint64_t) | timestamp(int64) | null bitmap (unsigned long long) | Values ...
         // Values = Double or (String length | String value)
         size_t offset = 0;
+        uint64_t message_id;
+
+        if (offset + sizeof(uint64_t) > bytes_vector.size()) {
+            throw std::runtime_error("Corrupted segment file");
+        }
+
+        std::memcpy(&message_id, bytes_vector.data() + offset, sizeof(uint64_t));
+        offset += sizeof(uint64_t);
+
         int64_t timestamp;
 
         if (offset + sizeof(int64_t) > bytes_vector.size()) {
@@ -141,34 +152,17 @@ public:
             }
         }
 
-        return ValidatedMessage{message_values, timestamp};
+        return SequencedMessage{message_id,std::move(ValidatedMessage{message_values, timestamp})};
     }
 
-    static std::vector<std::byte> generate_segment_header(const std::string& filename, const std::vector<std::byte>& header) {
+    static std::vector<std::byte> generate_segment_header_with_size(const std::vector<std::byte>& header) {
         std::vector<std::byte> buffer;
+        buffer.reserve(sizeof(uint32_t) + header.size());
 
-        // Reserve space for header size
-        append_to_buffer(buffer, uint32_t{0});
-
-        // file_name doesn't have the .ddb in it
-        // Header contents
-        append_string_to_buffer(buffer, filename);
-
-        // append schema binary
-        // schema size
+        // space for header size
         append_to_buffer(buffer, static_cast<uint32_t>(header.size()));
-        // schema bytes
         // FUTURE: think about using std::move
         buffer.insert(buffer.end(), header.begin(), header.end());
-
-        // Patch header size (excluding the size field itself)
-        const uint32_t header_size = static_cast<uint32_t>(buffer.size() - sizeof(uint32_t));
-
-        std::memcpy(
-            buffer.data(),
-            &header_size,
-            sizeof(header_size)
-        );
 
         return buffer;
     }

@@ -3,7 +3,7 @@
 //
 #include "buffer_manager.h"
 
-void BufferManager::add_buffer(Schema const& schema) {
+void BufferManager::add_buffer(Schema const& schema, uint64_t next_message_seq_id) {
     // create a lock for the new schema
     const std::string service_name = schema.get_service_name();
     this->service_lock_map_.create(service_name);
@@ -11,7 +11,8 @@ void BufferManager::add_buffer(Schema const& schema) {
     // acquire the new lock
     std::unique_lock<std::shared_mutex> lock = this->service_lock_map_.get_exclusive_lock(service_name);
 
-    auto service_buffer_ptr = std::make_unique<ServiceBuffer>(schema, this->buffer_batch_size_kb_, this->segment_size_mb_);
+    // If service is new, next_message_seq_id will be 1
+    auto service_buffer_ptr = std::make_unique<ServiceBuffer>(schema, this->buffer_batch_size_kb_, this->segment_size_mb_, next_message_seq_id);
 
     this->service_buffers_.insert_or_assign(service_name, std::move(service_buffer_ptr));
 }
@@ -30,6 +31,12 @@ bool BufferManager::contains(const std::string& service) {
     catch (const std::out_of_range&) {
         return false;
     }
+}
+
+uint64_t BufferManager::get_last_message_seq_id(const std::string& service) {
+    std::unique_lock<std::shared_mutex> lock = this->service_lock_map_.get_exclusive_lock(service);
+    const std::unique_ptr<ServiceBuffer>& buffer = this->service_buffers_.at(service);
+    return buffer->get_last_message_seq_id();
 }
 
 void BufferManager::push_message_to_buffer(const std::string& service, ValidatedMessage& message) {
