@@ -101,6 +101,7 @@ target_link_libraries(storage PUBLIC
 add_library(startup
         startup/src/index_loader.cpp
         startup/src/schema_loader.cpp
+        startup/src/header_loader.cpp
 )
 
 target_include_directories(startup PUBLIC
@@ -110,6 +111,7 @@ target_include_directories(startup PUBLIC
 target_link_libraries(startup PUBLIC
         schema
         index
+        storage
         util
 )
 

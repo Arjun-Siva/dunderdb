@@ -25,16 +25,16 @@ public:
     void set_segment_message_count(uint32_t segment_message_count);
     void set_max_message_id(uint64_t max_message_id);
 
-    std::string get_filename() const;
-    std::vector<std::byte> get_schema_bytes() const;
-    int64_t get_segment_starting_ts() const;
-    int64_t get_segment_ending_ts() const;
-    uint32_t get_segment_message_count() const;
-    uint64_t get_max_message_id() const;
+    [[nodiscard]] std::string get_filename() const;
+    [[nodiscard]] std::vector<std::byte> get_schema_bytes() const;
+    [[nodiscard]] int64_t get_segment_starting_ts() const;
+    [[nodiscard]] int64_t get_segment_ending_ts() const;
+    [[nodiscard]] uint32_t get_segment_message_count() const;
+    [[nodiscard]] uint64_t get_max_message_id() const;
 
     explicit SegmentHeader(std::span<const std::byte> binary_header);
 
-    std::vector<std::byte> convert_to_bytes() const;
+    [[nodiscard]] std::vector<std::byte> convert_to_bytes() const;
 
 private:
     std::string filename_;

@@ -21,7 +21,7 @@ Ingestion-optimized Time Series Database
 [x] Index lookup for time range, load files, form reply JSON \
 [x] Eventual visibility - Query handler signals BufferMap for APPEND when it requires tmp file \
 [x] Client API with ZMQ for pushing data and querying \
-[] Sequence numbers for messages, update headers \
+[x] Sequence numbers for messages, update headers \
 [] Delete query - Tombstones on disk, and Query handler reads them
 
 ---

@@ -11,6 +11,7 @@
 #include "disk_writer.h"
 #include "index_loader.h"
 #include "schema_loader.h"
+#include "header_loader.h"
 #include "lock_map.h"
 #include "query_receiver.h"
 #include "select_handler.h"
@@ -73,13 +74,19 @@ int main(int argc, char* argv[]) {
     for (const auto& schema : schemas_from_disk) {
         const auto service_name = schema.get_service_name();
 
-        // TODO: add correct message seq id
-        validator.add_schema(schema, 1); // schemas are added to the BufferManager too
-
         tmp_file_lock_map.create(service_name);
 
         // add empty indexes to index map for services that are present in schema map, but not in index map
-        if (!master_index_map.contains(service_name)) {
+        if (master_index_map.contains(service_name)) {
+            auto service_index = master_index_map.get_index(service_name);
+            std::string segment_name = service_index->get_latest_segment_file_name(); // with .ddb
+
+            SegmentHeader segment_header = HeaderLoader::load_segment_header(services_directory, service_name, segment_name);
+            auto last_msg_id = segment_header.get_max_message_id();
+            validator.add_schema(schema, last_msg_id + 1); // schemas are added to the BufferManager too
+
+        } else {
+            validator.add_schema(schema, 1);
             master_index_map.add_index(service_name, std::make_shared<ServiceIndex>(service_name, indexes_directory));
         }
     }
