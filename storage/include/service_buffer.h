@@ -33,6 +33,7 @@ public:
 
     std::optional<FlushJob> force_flush_job();
     std::optional<FlushJob> force_flush_append();
+    uint64_t get_next_message_seq_id_and_increment();
 
     [[nodiscard]] std::string get_service_name() const;
     [[nodiscard]] std::string get_current_segment_name() const;

@@ -4,8 +4,9 @@
 #include "ddl_handler.h"
 #include "unvalidated_message.h"
 
-class IngestionReceiver {
-    public:
+class IngestionReceiver
+{
+public:
     // no default constructor, copy constructor
     IngestionReceiver() = delete;
     IngestionReceiver(const IngestionReceiver&) = delete;
@@ -14,13 +15,17 @@ class IngestionReceiver {
     IngestionReceiver& operator=(IngestionReceiver&&) = delete;
 
     ~IngestionReceiver() = default;
-    explicit IngestionReceiver(CommonQueue<UnvalidatedMessage>& queue, DDLHandler& ddl_handler) : insertion_queue_(queue), ddl_handler_(ddl_handler) {};
+
+    explicit IngestionReceiver(CommonQueue<UnvalidatedMessage>& queue, SchemaMap& schema_map, DDLHandler& ddl_handler) :
+        insertion_queue_(queue), schema_map_(schema_map), ddl_handler_(ddl_handler) {};
     void run() const;
     void start();
     void stop();
     void join();
+
 private:
     CommonQueue<UnvalidatedMessage>& insertion_queue_;
+    SchemaMap& schema_map_;
     DDLHandler& ddl_handler_;
     std::thread thread_;
     std::atomic<bool> active_{true};

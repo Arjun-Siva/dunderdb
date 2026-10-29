@@ -32,7 +32,7 @@ private:
     std::filesystem::path index_file_directory_;
     std::string service_name_;
 
-    void append_metadata_to_disk(SegmentMetadata& new_segment_metadata);
+    void append_metadata_to_disk(SegmentMetadata& new_segment_metadata) const;
     // size_t find_lower_bound(int64_t q_start_ts) const;
     // size_t find_upper_bound(size_t starting_index, int64_t q_end_ts) const;
 };

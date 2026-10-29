@@ -34,9 +34,15 @@ bool BufferManager::contains(const std::string& service) {
 }
 
 uint64_t BufferManager::get_last_message_seq_id(const std::string& service) {
-    std::unique_lock<std::shared_mutex> lock = this->service_lock_map_.get_exclusive_lock(service);
+    std::shared_lock<std::shared_mutex> lock = this->service_lock_map_.get_shared_lock(service);
     const std::unique_ptr<ServiceBuffer>& buffer = this->service_buffers_.at(service);
     return buffer->get_last_message_seq_id();
+}
+
+uint64_t BufferManager::get_next_message_seq_id(const std::string& service) {
+    std::unique_lock<std::shared_mutex> lock = this->service_lock_map_.get_exclusive_lock(service);
+    const std::unique_ptr<ServiceBuffer>& buffer = this->service_buffers_.at(service);
+    return buffer->get_next_message_seq_id_and_increment();
 }
 
 void BufferManager::push_message_to_buffer(const std::string& service, ValidatedMessage& message) {

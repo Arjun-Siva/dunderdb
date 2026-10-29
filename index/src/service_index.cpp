@@ -11,7 +11,7 @@
 
 #include "time_converter.h"
 
-void ServiceIndex::append_metadata_to_disk(SegmentMetadata& new_segment_metadata) {
+void ServiceIndex::append_metadata_to_disk(SegmentMetadata& new_segment_metadata) const {
     std::vector<std::byte> serialized_metadata = IndexSerializer::serialize_segment_metadata(new_segment_metadata);
 
     const std::filesystem::path index_file_path = this->index_file_directory_ / std::string(this->service_name_ + ".idx");
@@ -38,8 +38,6 @@ void ServiceIndex::append_metadata_to_disk(SegmentMetadata& new_segment_metadata
             "Failed while writing file: " + index_file_path.string()
         );
     }
-
-    std::cout<<"Index write"<<std::endl;
 }
 
 void ServiceIndex::load_segment_metadata_list(std::vector<SegmentMetadata> &segment_metadata_list) {

@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Validator started" << std::endl;
 
     DDLHandler ddl_handler{master_schema_map, master_index_map, insertion_queue, schemas_directory, indexes_directory};
-    IngestionReceiver ingestion_receiver{insertion_queue, ddl_handler};
+    IngestionReceiver ingestion_receiver{insertion_queue, master_schema_map, ddl_handler};
     // starts network receiver in a new thread
     ingestion_receiver.start();
 

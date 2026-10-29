@@ -157,6 +157,9 @@ std::optional<FlushJob> ServiceBuffer::force_flush_append() {
     return create_flush_job(JobType::APPEND);
 }
 
+uint64_t ServiceBuffer::get_next_message_seq_id_and_increment() {
+    return this->next_message_seq_id_++;
+}
 
 std::string ServiceBuffer::get_service_name() const {
     return this->service_name_;

@@ -39,3 +39,5 @@ Ingestion-optimized Time Series Database
 [] Dead letter queues \
 [] Standing window queries \
 [] Specialized indexes
+
+---

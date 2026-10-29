@@ -10,8 +10,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 
-void IngestionReceiver::run() const
-{
+void IngestionReceiver::run() const {
     zmq::context_t context(1);
 
     zmq::socket_t socket(context, zmq::socket_type::rep);
@@ -19,9 +18,9 @@ void IngestionReceiver::run() const
     std::cout << "Ingestion handler listening on port 5555...\n";
     std::string success_resp = form_response("ok", "Messages received");
     std::string wrong_req_type_resp = form_response("error", "Unknown request type");
+    std::string missing_schema_resp = form_response("error", "Unknown schema");
 
     while (active_.load()) {
-
         // Wait for the next complete ZeroMQ multipart-message
         // NOTE: Assuming ZeroMQ delivers only after the complete message is received, needs verification
         zmq::pollitem_t item{
@@ -82,6 +81,13 @@ void IngestionReceiver::run() const
         // request type 0 is exclusively for ingestion
         // other types must be sent to a different socket
         if (request_type == "0") {
+            // validate if service_name is present
+            if (!this->schema_map_.contains(service_name)) {
+                socket.send(
+                    zmq::buffer(missing_schema_resp),
+                    zmq::send_flags::none);
+                continue;
+            }
 
             for (size_t i = 2; i < frames.size(); ++i) {
                 insertion_queue_.enqueue(
@@ -90,15 +96,15 @@ void IngestionReceiver::run() const
                         .service = service_name,
                         .payload = std::move(frames[i]),
                         .timestamp_ms =
-                            std::chrono::duration_cast<std::chrono::milliseconds>(
-                                std::chrono::system_clock::now().time_since_epoch()
-                            ).count()
+                        std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::system_clock::now().time_since_epoch()
+                        ).count()
                     }
                 );
             } // end-for
             socket.send(
-            zmq::buffer(success_resp),
-            zmq::send_flags::none);
+                zmq::buffer(success_resp),
+                zmq::send_flags::none);
         } // end-if
 
         else if (request_type == "2") {
@@ -106,21 +112,46 @@ void IngestionReceiver::run() const
             std::string ddl_resp;
             if (frames.size() != 3) {
                 ddl_resp = form_response("error", "DDL requests should contain 3 frames");
-            } else {
+            }
+            else {
                 std::string json_payload = std::move(frames[2]);
                 ddl_resp = this->ddl_handler_.process_ddl_query(json_payload);
             }
             socket.send(
-            zmq::buffer(ddl_resp),
-            zmq::send_flags::none);
+                zmq::buffer(ddl_resp),
+                zmq::send_flags::none);
+        }
+
+        else if (request_type == "3") {
+            // Delete query
+            if (!this->schema_map_.contains(service_name)) {
+                socket.send(
+                    zmq::buffer(missing_schema_resp),
+                    zmq::send_flags::none);
+                continue;
+            }
+
+            if (frames.size() != 3) {
+                socket.send(
+                    zmq::buffer(form_response("error", "Delete requests should contain 3 frames")),
+                    zmq::send_flags::none);
+                continue;
+            }
+
+            insertion_queue_.enqueue(
+                UnvalidatedMessage{
+                    .type = DELETE,
+                    .service = service_name,
+                    .payload = std::move(frames[2])
+                }
+            );
         }
 
         else {
             socket.send(
-            zmq::buffer(wrong_req_type_resp),
-            zmq::send_flags::none);
+                zmq::buffer(wrong_req_type_resp),
+                zmq::send_flags::none);
         }
-
     }
 }
 

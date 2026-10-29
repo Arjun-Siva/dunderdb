@@ -21,6 +21,7 @@ class BufferManager
     void erase_buffer(const std::string &service);
     bool contains(const std::string& service);
     uint64_t get_last_message_seq_id(const std::string& service);
+    uint64_t get_next_message_seq_id(const std::string& service);
 
     void push_message_to_buffer(const std::string& service, ValidatedMessage& message);
     void flush_buffer_and_seal(const std::string& service);

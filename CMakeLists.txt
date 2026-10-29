@@ -38,6 +38,7 @@ target_include_directories(network PUBLIC
 target_link_libraries(network PUBLIC
         ${ZMQ_LIBRARIES}
         util
+        schema
         storage
         query
 )
@@ -133,6 +134,21 @@ target_link_libraries(query PUBLIC
         rapidjson
 )
 
+# tombstone library
+add_library(tombstone
+        tombstone/src/tombstone.cpp
+        tombstone/src/cemetery.cpp
+        tombstone/src/sexton.cpp
+)
+
+target_include_directories(tombstone PUBLIC
+        tombstone/include
+)
+
+target_link_libraries(tombstone PUBLIC
+
+)
+
 #executable
 
 add_executable(dunderdb main.cpp)
@@ -146,6 +162,7 @@ target_link_libraries(dunderdb
         index
         startup
         query
+        tombstone
 )
 
 add_executable(test test.cpp)
